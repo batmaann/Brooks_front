@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Brooks_front
 
 This template should help get you started developing with Vue 3 in Vite.
@@ -46,3 +47,6 @@ npm run build
 ```sh
 npm run lint
 ```
+=======
+# Brooks_front
+>>>>>>> cfadff65d20055bf0ef1c2b2618ad4eb6341708b
