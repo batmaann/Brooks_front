@@ -1,16 +1,20 @@
 <script lang="ts">
-export default {
-  data() {
-    return {
-      count: 0
+import Vehicle from '@/components/Vehicle.vue';
 
-    }
-  }
+
+
+export default{
+components:{
+  Vehicle
+},
 }
 </script>
 
 <template>
-  <h1 id="red">Test</h1>
-  {{ count }}
-  <button @click="count++">counter++</button>
+  <Vehicle />
+
+  <h1>Транспортное средство </h1>
+
+
+  
 </template>
