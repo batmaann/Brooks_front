@@ -64,8 +64,12 @@ export default {
 <template>
   <div class="vehicle-form">
     <!-- Кнопка для открытия формы -->
-    <button @click="openModal" class="add-button">
-      Добавить новое транспортное средство
+    <button 
+      @click="openModal" 
+      class="add-button"
+      title="Добавить транспортное средство"
+    >
+      + ТС
     </button>
     
     <!-- Модальное окно -->

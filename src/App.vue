@@ -55,7 +55,7 @@ export default {
 
 <template>
   <div id="app">
-    <h1>Заправки</h1>
+    <h1>Forge</h1>
     <h2>Возможность добавить заправку, транспотрное средство и АЗС</h2>
     
     <button @click="toggleShowVehicles">
