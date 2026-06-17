@@ -10,6 +10,7 @@ import {
   CircleGauge,
   Fuel,
   LayoutDashboard,
+  Lightbulb,
   LogOut,
   Menu,
   Plus,
@@ -21,7 +22,7 @@ import {
 } from '@lucide/vue'
 import { api, ApiError, hasToken, listResult, setToken } from '@/api'
 
-type View = 'dashboard' | 'vehicles' | 'refuelings' | 'stations'
+type View = 'dashboard' | 'refuelings'
 type Modal = 'vehicle' | 'refueling' | 'station' | null
 
 interface Vehicle {
@@ -75,6 +76,7 @@ const saving = ref(false)
 const error = ref('')
 const search = ref('')
 const modal = ref<Modal>(null)
+const isDarkTheme = ref(localStorage.getItem('brooks-theme') === 'dark')
 
 const vehicles = ref<Vehicle[]>([])
 const refuelings = ref<Refueling[]>([])
@@ -105,9 +107,7 @@ const stationForm = reactive({ name: '', company: '', number: '', address: '' })
 
 const navItems = [
   { id: 'dashboard' as View, label: 'Обзор', icon: LayoutDashboard },
-  { id: 'vehicles' as View, label: 'Транспорт', icon: CarFront },
   { id: 'refuelings' as View, label: 'Заправки', icon: Fuel },
-  { id: 'stations' as View, label: 'АЗС', icon: Building2 },
 ]
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
@@ -293,12 +293,24 @@ function logout() {
   stations.value = []
 }
 
+function applyTheme() {
+  document.documentElement.dataset.theme = isDarkTheme.value ? 'dark' : 'light'
+  localStorage.setItem('brooks-theme', isDarkTheme.value ? 'dark' : 'light')
+}
+
+function toggleTheme() {
+  isDarkTheme.value = !isDarkTheme.value
+  applyTheme()
+}
+
 onMounted(() => {
+  applyTheme()
   if (authenticated.value) loadData()
 })
 </script>
 
 <template>
+
   <div v-if="!authenticated" class="auth-layout">
     <section class="auth-brand">
       <div class="brand-mark"><Fuel :size="25" /></div>
@@ -381,9 +393,18 @@ onMounted(() => {
           <button class="icon-button" title="Обновить данные" :disabled="loading" @click="loadData">
             <RefreshCw :class="{ spin: loading }" :size="19" />
           </button>
-          <button v-if="activeView === 'vehicles'" class="primary-button" @click="openModal('vehicle')"><Plus :size="18" />Добавить ТС</button>
-          <button v-if="activeView === 'refuelings'" class="primary-button" :disabled="!vehicles.length" @click="openModal('refueling')"><Plus :size="18" />Добавить заправку</button>
-          <button v-if="activeView === 'stations'" class="primary-button" @click="openModal('station')"><Plus :size="18" />Добавить АЗС</button>
+          <span class="action-tooltip" :title="vehicles.length ? 'Добавить новую заправку' : 'Сначала добавьте транспорт в разделе Заправки'">
+            <button v-if="activeView === 'refuelings'" class="primary-button" :disabled="!vehicles.length" @click="openModal('refueling')"><Plus :size="18" />Добавить заправку</button>
+          </span>
+          <button
+            class="icon-button theme-toggle"
+            :class="{ active: isDarkTheme }"
+            :title="isDarkTheme ? 'Выключить темную тему' : 'Включить темную тему'"
+            type="button"
+            @click="toggleTheme"
+          >
+            <Lightbulb :size="20" />
+          </button>
         </div>
       </header>
 
@@ -452,39 +473,18 @@ onMounted(() => {
                   <div><i class="dot station-dot"></i><span>АЗС в справочнике</span><strong>{{ stations.length }}</strong></div>
                 </div>
               </div>
-              <button class="secondary-button wide" @click="selectView('vehicles')">Открыть автопарк <ChevronRight :size="17" /></button>
+              <button class="secondary-button wide" @click="selectView('refuelings')">Открыть заправки <ChevronRight :size="17" /></button>
             </div>
           </section>
         </template>
 
         <template v-else>
           <section class="list-toolbar">
-            <div class="search-field"><Search :size="18" /><input v-model="search" :placeholder="`Поиск: ${viewTitle.toLowerCase()}`"></div>
-            <span class="record-count">
-              {{ activeView === 'vehicles' ? filteredVehicles.length : activeView === 'refuelings' ? filteredRefuelings.length : filteredStations.length }} записей
-            </span>
+            <div class="search-field"><Search :size="18" /><input v-model="search" placeholder="Поиск по заправкам, транспорту и АЗС"></div>
+            <span class="record-count">{{ filteredRefuelings.length }} заправок</span>
           </section>
 
-          <section v-if="activeView === 'vehicles'" class="vehicle-grid">
-            <article v-for="vehicle in filteredVehicles" :key="vehicle.id" class="vehicle-card">
-              <div class="vehicle-card-head">
-                <div class="vehicle-symbol"><CarFront :size="24" /></div>
-                <span class="status" :class="{ inactive: !vehicle.is_active }"><i></i>{{ vehicle.is_active ? 'Активен' : 'Неактивен' }}</span>
-                <button class="icon-button danger" title="Удалить транспорт" @click="remove('/vehicle/', vehicle.id, vehicle.name)"><Trash2 :size="17" /></button>
-              </div>
-              <div>
-                <h2>{{ vehicle.name }}</h2>
-                <p>{{ [vehicle.brand, vehicle.model, vehicle.year].filter(Boolean).join(' · ') || 'Без дополнительных данных' }}</p>
-              </div>
-              <dl>
-                <div><dt>Текущий пробег</dt><dd>{{ number(vehicle.current_odometer || vehicle.initial_odometer) }} км</dd></div>
-                <div><dt>Начальный</dt><dd>{{ number(vehicle.initial_odometer) }} км</dd></div>
-              </dl>
-            </article>
-            <button class="add-card" @click="openModal('vehicle')"><Plus :size="23" /><strong>Добавить транспорт</strong></button>
-          </section>
-
-          <section v-if="activeView === 'refuelings'" class="table-panel">
+          <section class="table-panel">
             <div class="table-scroll">
               <table>
                 <thead><tr><th>Дата</th><th>Транспорт</th><th>АЗС / топливо</th><th>Пробег</th><th>Объем</th><th>Стоимость</th><th></th></tr></thead>
@@ -504,14 +504,55 @@ onMounted(() => {
             <div v-if="!filteredRefuelings.length" class="empty-state"><Fuel :size="28" /><strong>Записи не найдены</strong></div>
           </section>
 
-          <section v-if="activeView === 'stations'" class="station-list">
-            <article v-for="station in filteredStations" :key="station.id">
-              <div class="station-icon"><Building2 :size="21" /></div>
-              <div class="station-main"><h2>{{ station.company || station.name }}</h2><p>{{ station.name }}<template v-if="station.number"> · №{{ station.number }}</template></p></div>
-              <span class="station-address">{{ station.address || 'Адрес не указан' }}</span>
-              <button class="icon-button danger" title="Удалить АЗС" @click="remove('/gasStation/', station.id, station.name)"><Trash2 :size="17" /></button>
-            </article>
-            <button class="add-row" @click="openModal('station')"><Plus :size="20" />Добавить АЗС</button>
+          <section class="refueling-management">
+            <div class="section-heading management-heading">
+              <div><p class="eyebrow">Справочники</p><h2>Транспорт и АЗС</h2></div>
+              <div class="management-actions">
+                <button class="secondary-button" @click="openModal('vehicle')"><Plus :size="17" />Транспорт</button>
+                <button class="secondary-button" @click="openModal('station')"><Plus :size="17" />АЗС</button>
+              </div>
+            </div>
+
+            <div class="management-grid">
+              <section class="management-panel">
+                <div class="section-heading compact-heading">
+                  <div><p class="eyebrow">Транспорт</p><h2>{{ filteredVehicles.length }} записей</h2></div>
+                </div>
+                <div class="vehicle-grid compact-grid">
+                  <article v-for="vehicle in filteredVehicles" :key="vehicle.id" class="vehicle-card">
+                    <div class="vehicle-card-head">
+                      <div class="vehicle-symbol"><CarFront :size="24" /></div>
+                      <span class="status" :class="{ inactive: !vehicle.is_active }"><i></i>{{ vehicle.is_active ? 'Активен' : 'Неактивен' }}</span>
+                      <button class="icon-button danger" title="Удалить транспорт" @click="remove('/vehicle/', vehicle.id, vehicle.name)"><Trash2 :size="17" /></button>
+                    </div>
+                    <div>
+                      <h2>{{ vehicle.name }}</h2>
+                      <p>{{ [vehicle.brand, vehicle.model, vehicle.year].filter(Boolean).join(' · ') || 'Без дополнительных данных' }}</p>
+                    </div>
+                    <dl>
+                      <div><dt>Текущий пробег</dt><dd>{{ number(vehicle.current_odometer || vehicle.initial_odometer) }} км</dd></div>
+                      <div><dt>Начальный</dt><dd>{{ number(vehicle.initial_odometer) }} км</dd></div>
+                    </dl>
+                  </article>
+                  <button class="add-card" @click="openModal('vehicle')"><Plus :size="23" /><strong>Добавить транспорт</strong></button>
+                </div>
+              </section>
+
+              <section class="management-panel">
+                <div class="section-heading compact-heading">
+                  <div><p class="eyebrow">АЗС</p><h2>{{ filteredStations.length }} записей</h2></div>
+                </div>
+                <div class="station-list compact-station-list">
+                  <article v-for="station in filteredStations" :key="station.id">
+                    <div class="station-icon"><Building2 :size="21" /></div>
+                    <div class="station-main"><h2>{{ station.company || station.name }}</h2><p>{{ station.name }}<template v-if="station.number"> · №{{ station.number }}</template></p></div>
+                    <span class="station-address">{{ station.address || 'Адрес не указан' }}</span>
+                    <button class="icon-button danger" title="Удалить АЗС" @click="remove('/gasStation/', station.id, station.name)"><Trash2 :size="17" /></button>
+                  </article>
+                  <button class="add-row" @click="openModal('station')"><Plus :size="20" />Добавить АЗС</button>
+                </div>
+              </section>
+            </div>
           </section>
         </template>
       </main>

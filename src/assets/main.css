@@ -67,6 +67,7 @@ textarea { resize: vertical; }
 .topbar { min-height: 86px; padding: 16px clamp(22px, 3vw, 44px); display: flex; align-items: center; gap: 18px; background: white; border-bottom: 1px solid var(--line); }
 .topbar h1 { margin-top: 3px; font-size: 24px; }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+.action-tooltip { display: inline-flex; }
 .icon-button { width: 38px; height: 38px; padding: 0; display: inline-grid; place-items: center; flex: 0 0 auto; color: #54605b; background: white; border: 1px solid #d9e0dd; border-radius: 6px; }
 .icon-button:hover { color: var(--green); border-color: #a9c7ba; background: #f7faf8; }
 .icon-button.danger { color: #8c5d5d; }
@@ -146,6 +147,16 @@ td .icon-button { width: 32px; height: 32px; }
 .station-icon { width: 40px; height: 40px; display: grid; place-items: center; color: #8a6517; background: #fbf1d5; border-radius: 6px; }
 .station-address { color: var(--muted); font-size: 12px; }
 .add-row { width: 100%; min-height: 54px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; color: var(--green); background: #f9fbfa; font-weight: 800; font-size: 12px; }
+.refueling-management { margin-top: 24px; display: grid; gap: 16px; }
+.management-heading { min-height: auto; }
+.management-actions { display: flex; align-items: center; gap: 9px; }
+.management-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 18px; align-items: start; }
+.management-panel { display: grid; gap: 14px; min-width: 0; }
+.compact-heading { min-height: auto; }
+.compact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.compact-grid .vehicle-card, .compact-grid .add-card { min-height: 220px; }
+.compact-station-list article { grid-template-columns: 42px minmax(150px, 1fr) 38px; }
+.compact-station-list .station-address { grid-column: 2 / 3; }
 .empty-state { min-height: 180px; display: grid; place-content: center; justify-items: center; gap: 8px; color: #83908a; text-align: center; }
 .empty-state strong { color: #4a5550; font-size: 13px; }
 .empty-state span { font-size: 11px; }
@@ -165,6 +176,85 @@ td .icon-button { width: 32px; height: 32px; }
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.theme-toggle { color: #9a7219; background: #fff7d6; border-color: #e8cb73; }
+.theme-toggle:hover, .theme-toggle.active { color: #ffe88a; background: #1f2c28; border-color: #4b6259; }
+
+[data-theme="dark"] {
+  color: #e9f0ed;
+  background: #101815;
+  --green: #4fd18f;
+  --green-dark: #39b978;
+  --green-soft: #183527;
+  --ink: #edf5f1;
+  --muted: #9fafaa;
+  --line: #2b3833;
+  --surface: #18211e;
+  --danger: #ff7777;
+}
+
+[data-theme="dark"] body { background: #101815; color: var(--ink); }
+[data-theme="dark"] .auth-layout,
+[data-theme="dark"] .auth-panel,
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .vehicle-card,
+[data-theme="dark"] .add-card,
+[data-theme="dark"] .table-panel,
+[data-theme="dark"] .station-list,
+[data-theme="dark"] .modal,
+[data-theme="dark"] .search-field { background: var(--surface); color: var(--ink); }
+[data-theme="dark"] .auth-brand,
+[data-theme="dark"] .sidebar { background: #0e2b21; }
+[data-theme="dark"] label,
+[data-theme="dark"] .secondary-button,
+[data-theme="dark"] .empty-state strong,
+[data-theme="dark"] .fleet-legend strong { color: var(--ink); }
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea { color: var(--ink); background: #111a17; border-color: #35443f; }
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #75857f; }
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(79, 209, 143, .14); }
+[data-theme="dark"] .icon-button { color: #c4d1cc; background: #151f1c; border-color: #35443f; }
+[data-theme="dark"] .icon-button:hover { color: var(--green); background: #1b2a25; border-color: #4b695e; }
+[data-theme="dark"] .icon-button.danger { color: #ffaaa5; }
+[data-theme="dark"] .icon-button.danger:hover { color: #ff7777; background: #2f1d1d; border-color: #704040; }
+[data-theme="dark"] .theme-toggle { color: #ffe88a; background: #263026; border-color: #756d38; box-shadow: 0 10px 28px rgba(0, 0, 0, .36); }
+[data-theme="dark"] .theme-toggle:hover,
+[data-theme="dark"] .theme-toggle.active { color: #2b2510; background: #ffe88a; border-color: #ffe88a; }
+[data-theme="dark"] .secondary-button { background: #202b27; border-color: #394842; }
+[data-theme="dark"] .secondary-button:hover,
+[data-theme="dark"] .add-card:hover,
+[data-theme="dark"] .add-row { background: #1c2924; }
+[data-theme="dark"] .metric-grid,
+[data-theme="dark"] .metric,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .vehicle-card,
+[data-theme="dark"] .add-card,
+[data-theme="dark"] .table-panel,
+[data-theme="dark"] .station-list,
+[data-theme="dark"] .modal header,
+[data-theme="dark"] .modal footer,
+[data-theme="dark"] .check-field span { border-color: var(--line); }
+[data-theme="dark"] .activity-row,
+[data-theme="dark"] .vehicle-card dl,
+[data-theme="dark"] .vehicle-card dl div + div,
+[data-theme="dark"] td,
+[data-theme="dark"] .station-list article { border-color: #26332f; }
+[data-theme="dark"] th,
+[data-theme="dark"] .modal footer { background: #111a17; }
+[data-theme="dark"] .fleet-ring { background: radial-gradient(circle, var(--surface) 58%, transparent 60%), conic-gradient(var(--green) 0 78%, #33423d 78% 100%); }
+[data-theme="dark"] .metric-icon.green,
+[data-theme="dark"] .activity-icon,
+[data-theme="dark"] .vehicle-symbol { color: #78e0a8; background: #183527; }
+[data-theme="dark"] .metric-icon.amber,
+[data-theme="dark"] .station-icon { color: #f2c75b; background: #382d17; }
+[data-theme="dark"] .metric-icon.blue { color: #7fc3df; background: #19303a; }
+[data-theme="dark"] .metric-icon.red { color: #ffa1a1; background: #3b2020; }
+[data-theme="dark"] .error-banner { color: #ffb7b7; background: #351d1d; border-color: #6a3333; }
+[data-theme="dark"] .modal-backdrop { background: rgba(4, 8, 7, .72); }
 @media (max-width: 1100px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .metric:nth-child(2) { border-right: 0; }
@@ -181,6 +271,7 @@ td .icon-button { width: 32px; height: 32px; }
   .auth-feature { display: none; }
   .auth-panel { padding: 36px 24px; }
   .app-shell { display: block; }
+  .management-grid { grid-template-columns: 1fr; }
   .sidebar { transform: translateX(-100%); transition: transform .2s ease; box-shadow: 14px 0 35px rgba(0,0,0,.18); }
   .sidebar.open { transform: translateX(0); }
   .mobile-close { display: grid; margin-left: auto; color: white; background: transparent; border-color: rgba(255,255,255,.2); }
@@ -191,6 +282,9 @@ td .icon-button { width: 32px; height: 32px; }
   .topbar h1 { font-size: 20px; }
   .topbar-actions .primary-button { width: 40px; padding: 0; font-size: 0; }
   .content { padding: 20px 16px 40px; }
+  .management-actions { width: 100%; flex-wrap: wrap; }
+  .management-actions .secondary-button { flex: 1 1 150px; }
+  .compact-grid { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
   .metric { min-height: 145px; padding: 16px; }
   .metric > strong { font-size: 20px; }
