@@ -25,7 +25,7 @@ import {
 import { api, ApiError, hasToken, listResult, setToken } from '@/api'
 
 type View = 'dashboard' | 'refuelings'
-type Modal = 'vehicle' | 'refueling' | 'station' | null
+type Modal = 'vehicle' | 'refueling' | 'station' | 'about' | null
 type TransactionType = 'income' | 'expense' | 'saving'
 type TransactionStatus = 'confirmed' | 'draft' | 'needs_review' | 'ignored'
 type SortDirection = 'asc' | 'desc' | null
@@ -161,6 +161,12 @@ const navItems = [
 ]
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
+const modalTitle = computed(() => {
+  if (modal.value === 'vehicle') return 'Транспорт'
+  if (modal.value === 'refueling') return 'Заправка'
+  if (modal.value === 'station') return 'Автозаправочная станция'
+  return 'О нас'
+})
 const transactionIncome = computed(() => transactions.value
   .filter((item) => item.transaction_type === 'income')
   .reduce((sum, item) => sum + Number(item.amount), 0))
@@ -213,7 +219,7 @@ const transactionTypeLabels: Record<TransactionType, string> = {
 }
 
 function currency(value: number | string, code = 'RUB') {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: code || 'RUB', maximumFractionDigits: 0 }).format(Number(value))
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: code || 'RUB', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value))
 }
 
 function number(value: number | string, digits = 0) {
@@ -570,6 +576,7 @@ onMounted(() => {
       </nav>
       <div class="sidebar-footer">
         <button @click="logout"><LogOut :size="19" /><span>Выйти</span></button>
+        <button class="about-link" type="button" @click="openModal('about')">О нас</button>
       </div>
     </aside>
 
@@ -603,16 +610,16 @@ onMounted(() => {
         <div v-if="error" class="error-banner"><span>{{ error }}</span><button title="Закрыть" @click="error = ''"><X :size="18" /></button></div>
 
         <template v-if="activeView === 'dashboard'">
+          <div class="finance-summary">
+            <div class="finance-summary-item income"><span>Доходы</span><strong>{{ currency(transactionIncome) }}</strong></div>
+            <div class="finance-summary-item expense"><span>Траты</span><strong>{{ currency(transactionExpense) }}</strong></div>
+            <div class="finance-summary-item saving"><span>Накопления</span><strong>{{ currency(transactionSaving) }}</strong></div>
+            <div class="finance-summary-item balance"><span>Итог</span><strong>{{ currency(transactionBalance) }}</strong></div>
+          </div>
           <section class="finance-panel panel">
             <div class="section-heading">
-              <div><p class="eyebrow">Финансовый результат</p><h2>Финансовые операции</h2></div>
-              <button class="icon-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
-            </div>
-            <div class="finance-summary">
-              <div class="finance-summary-item income"><span>Доходы</span><strong>{{ currency(transactionIncome) }}</strong></div>
-              <div class="finance-summary-item expense"><span>Траты</span><strong>{{ currency(transactionExpense) }}</strong></div>
-              <div class="finance-summary-item saving"><span>Накопления</span><strong>{{ currency(transactionSaving) }}</strong></div>
-              <div class="finance-summary-item balance"><span>Итог</span><strong>{{ currency(transactionBalance) }}</strong></div>
+              <div><h2>Финансовые операции</h2></div>
+              <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
             </div>
             <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">
               <div class="table-scroll">
@@ -649,7 +656,7 @@ onMounted(() => {
                       </th>
                       <th>
                         <button class="sort-header" :class="{ active: transactionSort.key === 'bank_label' }" type="button" @click="toggleTransactionSort('bank_label')">
-                          <span>Лейбл банка</span>
+                          <span>Банк</span>
                           <ChevronUp v-if="transactionSort.key === 'bank_label' && transactionSort.direction === 'asc'" :size="14" />
                           <ChevronDown v-else-if="transactionSort.key === 'bank_label' && transactionSort.direction === 'desc'" :size="14" />
                         </button>
@@ -665,6 +672,20 @@ onMounted(() => {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr v-if="addingTransaction" class="transaction-edit-row transaction-create-row">
+                      <td><input v-model="transactionForm.date" required type="date"></td>
+                      <td><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
+                      <td><span class="muted-cell">Без категории</span></td>
+                      <td><input v-model.number="transactionForm.amount" required type="number" min="0.01" step="0.01"></td>
+                      <td><span class="muted-cell">Не указан</span></td>
+                      <td><input v-model.trim="transactionForm.description" placeholder="Описание"></td>
+                      <td>
+                        <div class="transaction-actions editing">
+                          <button class="icon-button" title="Сохранить" :disabled="saving" @click="createTransaction"><Check :size="16" /></button>
+                          <button class="icon-button" title="Отмена" :disabled="saving" @click="cancelCreateTransaction"><X :size="16" /></button>
+                        </div>
+                      </td>
+                    </tr>
                     <template v-for="item in sortedTransactions" :key="item.id">
                       <tr v-if="editingTransactionId !== item.id" class="transaction-display-row">
                         <td><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
@@ -695,20 +716,6 @@ onMounted(() => {
                         </td>
                       </tr>
                     </template>
-                    <tr v-if="addingTransaction" class="transaction-edit-row transaction-create-row">
-                      <td><input v-model="transactionForm.date" required type="date"></td>
-                      <td><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
-                      <td><span class="muted-cell">Без категории</span></td>
-                      <td><input v-model.number="transactionForm.amount" required type="number" min="0.01" step="0.01"></td>
-                      <td><span class="muted-cell">Не указан</span></td>
-                      <td><input v-model.trim="transactionForm.description" placeholder="Описание"></td>
-                      <td>
-                        <div class="transaction-actions editing">
-                          <button class="icon-button" title="Сохранить" :disabled="saving" @click="createTransaction"><Check :size="16" /></button>
-                          <button class="icon-button" title="Отмена" :disabled="saving" @click="cancelCreateTransaction"><X :size="16" /></button>
-                        </div>
-                      </td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -802,10 +809,10 @@ onMounted(() => {
     <section class="modal">
       <header>
         <div>
-          <p class="eyebrow">Новая запись</p>
-          <h2>{{ modal === 'vehicle' ? 'Транспорт' : modal === 'refueling' ? 'Заправка' : 'Автозаправочная станция' }}</h2>
+          <p class="eyebrow">{{ modal === 'about' ? 'Информация' : 'Новая запись' }}</p>
+          <h2>{{ modalTitle }}</h2>
         </div>
-        <button class="icon-button" title="Закрыть" @click="closeModal"><X :size="20" /></button>
+        <button class="icon-button" :class="{ danger: modal === 'about' }" title="Закрыть" @click="closeModal"><X :size="20" /></button>
       </header>
 
       <form v-if="modal === 'vehicle'" id="vehicle-form" @submit.prevent="createVehicle">
@@ -839,8 +846,15 @@ onMounted(() => {
       </form>
 
 
+      <div v-if="modal === 'about'" class="about-content">
+        <p><span class="about-brand">Brooks</span> — финансовый некоммерческий продукт для личного учета доходов, расходов, накоплений и связанных повседневных операций.</p>
+        <p>Проект создается как доступный инструмент для всех пользователей, которым важно видеть понятную картину своих финансов, анализировать движение средств и принимать более взвешенные решения.</p>
+        <p>Проект не передает персональные данные третьим лицам и не использует их для внешней обработки. Работа с данными организована изолированно: информация каждого пользователя хранится и обрабатывается отдельно от данных других пользователей.</p>
+        <p>Мы развиваем Brooks постепенно: улучшаем интерфейс, расширяем возможности учета, повышаем надежность работы с данными и добавляем функции, которые делают продукт удобнее в ежедневном использовании.</p>
+      </div>
+
       <p v-if="error" class="form-error modal-error">{{ error }}</p>
-      <footer>
+      <footer v-if="modal !== 'about'">
         <button class="secondary-button" type="button" @click="closeModal">Отмена</button>
         <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving">
           <RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Сохранить
