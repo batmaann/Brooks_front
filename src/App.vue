@@ -113,6 +113,7 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const search = ref('')
+const transactionSearch = ref('')
 const modal = ref<Modal>(null)
 const dashboardControlsOpen = ref(false)
 const selectedBankLabelId = ref<number | null>(null)
@@ -208,6 +209,23 @@ const sortedTransactions = computed(() => {
 
     return result * directionMultiplier
   })
+})
+
+const visibleTransactions = computed(() => {
+  const query = transactionSearch.value.trim().toLowerCase()
+  if (!query) return sortedTransactions.value
+
+  return sortedTransactions.value.filter((item) => [
+    item.date,
+    formatDate(item.date),
+    transactionTypeLabels[item.transaction_type],
+    item.category_name_snapshot || 'Без категории',
+    item.bank_label_name_snapshot || 'Не указан',
+    item.description || '',
+    item.currency,
+    String(item.amount),
+    currency(item.amount, item.currency),
+  ].some((value) => value.toLowerCase().includes(query)))
 })
 
 const filteredVehicles = computed(() => {
@@ -693,7 +711,7 @@ onMounted(() => {
           </div>
           <section class="finance-panel panel">
             <div class="section-heading">
-              <div><h2>Финансовые операции</h2></div>
+              <div class="finance-heading-main"><h2>Финансовые операции</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="transactionSearch" placeholder="Поиск по операциям, банку и описанию"></div></div>
               <div class="finance-heading-actions">
                 <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
                 <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="openModal('bankLabel')">Добавить банк</button>
@@ -774,7 +792,7 @@ onMounted(() => {
                         </div>
                       </td>
                     </tr>
-                    <template v-for="item in sortedTransactions" :key="item.id">
+                    <template v-for="item in visibleTransactions" :key="item.id">
                       <tr v-if="editingTransactionId !== item.id" class="transaction-display-row">
                         <td><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
                         <td><span class="transaction-type" :class="item.transaction_type">{{ transactionTypeLabels[item.transaction_type] }}</span></td>
