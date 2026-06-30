@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import {
-  BarChart3,
   Building2,
   CalendarDays,
   CarFront,
@@ -13,17 +12,20 @@ import {
   Lightbulb,
   LogOut,
   Menu,
+  Pencil,
   Plus,
   RefreshCw,
-  Route,
   Search,
   Trash2,
+  WalletCards,
   X,
 } from '@lucide/vue'
 import { api, ApiError, hasToken, listResult, setToken } from '@/api'
 
 type View = 'dashboard' | 'refuelings'
 type Modal = 'vehicle' | 'refueling' | 'station' | null
+type TransactionType = 'income' | 'expense' | 'saving'
+type TransactionStatus = 'confirmed' | 'draft' | 'needs_review' | 'ignored'
 
 interface Vehicle {
   id: number
@@ -63,6 +65,30 @@ interface GasStation {
   company: string
 }
 
+interface Transaction {
+  id: number
+  date: string
+  transaction_type: TransactionType
+  category: number | null
+  category_name_snapshot: string
+  amount: string
+  currency: string
+  bank_label: number | null
+  bank_label_name_snapshot: string
+  description: string
+  source: string
+  status: TransactionStatus
+}
+
+interface TransactionDraft {
+  date: string
+  transaction_type: TransactionType
+  amount: number
+  currency: string
+  status: TransactionStatus
+  description: string
+}
+
 const authenticated = ref(hasToken())
 const authMode = ref<'login' | 'register'>('login')
 const authForm = reactive({ username: '', password: '', phone: '' })
@@ -81,6 +107,7 @@ const isDarkTheme = ref(localStorage.getItem('brooks-theme') === 'dark')
 const vehicles = ref<Vehicle[]>([])
 const refuelings = ref<Refueling[]>([])
 const stations = ref<GasStation[]>([])
+const transactions = ref<Transaction[]>([])
 
 const vehicleForm = reactive({
   name: '',
@@ -104,18 +131,38 @@ const refuelingForm = reactive({
   comment: '',
 })
 const stationForm = reactive({ name: '', company: '', number: '', address: '' })
+const transactionForm = reactive(defaultTransactionDraft())
+const editingTransactionId = ref<number | null>(null)
+const transactionEditForm = reactive(defaultTransactionDraft())
+const addingTransaction = ref(false)
+
+function defaultTransactionDraft(): TransactionDraft {
+  return {
+    date: new Date().toISOString().slice(0, 10),
+    transaction_type: 'expense',
+    amount: 0,
+    currency: 'RUB',
+    status: 'confirmed',
+    description: '',
+  }
+}
 
 const navItems = [
-  { id: 'dashboard' as View, label: 'Обзор', icon: LayoutDashboard },
+  { id: 'dashboard' as View, label: 'Главная', icon: LayoutDashboard },
   { id: 'refuelings' as View, label: 'Заправки', icon: Fuel },
 ]
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
-const totalCost = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.effective_cost || item.total_cost), 0))
-const totalFuel = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.fuel_quantity), 0))
-const totalDistance = computed(() => refuelings.value.reduce((sum, item) => sum + item.mileage, 0))
-const averageConsumption = computed(() => totalDistance.value ? totalFuel.value / totalDistance.value * 100 : 0)
-const activeVehicles = computed(() => vehicles.value.filter((vehicle) => vehicle.is_active).length)
+const transactionIncome = computed(() => transactions.value
+  .filter((item) => item.transaction_type === 'income')
+  .reduce((sum, item) => sum + Number(item.amount), 0))
+const transactionExpense = computed(() => transactions.value
+  .filter((item) => item.transaction_type === 'expense')
+  .reduce((sum, item) => sum + Number(item.amount), 0))
+const transactionSaving = computed(() => transactions.value
+  .filter((item) => item.transaction_type === 'saving')
+  .reduce((sum, item) => sum + Number(item.amount), 0))
+const transactionBalance = computed(() => transactionIncome.value - transactionExpense.value - transactionSaving.value)
 
 const filteredVehicles = computed(() => {
   const query = search.value.toLowerCase()
@@ -136,10 +183,15 @@ const filteredStations = computed(() => {
     [item.name, item.company, item.address].some((value) => value?.toLowerCase().includes(query)),
   )
 })
-const recentRefuelings = computed(() => refuelings.value.slice(0, 5))
 
-function currency(value: number | string) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(Number(value))
+const transactionTypeLabels: Record<TransactionType, string> = {
+  income: 'Доход',
+  expense: 'Трата',
+  saving: 'Накопление',
+}
+
+function currency(value: number | string, code = 'RUB') {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: code || 'RUB', maximumFractionDigits: 0 }).format(Number(value))
 }
 
 function number(value: number | string, digits = 0) {
@@ -156,6 +208,14 @@ function vehicleById(id: number) {
 
 function stationById(id: number | null) {
   return stations.value.find((station) => station.id === id)
+}
+
+function transactionTitle(item: Transaction) {
+  return item.category_name_snapshot || item.description || transactionTypeLabels[item.transaction_type]
+}
+
+function transactionSign(type: TransactionType) {
+  return type === 'income' ? '+' : '-'
 }
 
 async function authenticate() {
@@ -181,14 +241,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [vehicleData, refuelingData, stationData] = await Promise.all([
+    const [vehicleData, refuelingData, stationData, transactionData] = await Promise.all([
       api<Vehicle[] | { results: Vehicle[] }>('/vehicle/'),
       api<Refueling[] | { results: Refueling[] }>('/refuelings/'),
       api<GasStation[] | { results: GasStation[] }>('/gasStation/'),
+      api<Transaction[] | { results: Transaction[] }>('/transactions/'),
     ])
     vehicles.value = listResult(vehicleData)
     refuelings.value = listResult(refuelingData)
     stations.value = listResult(stationData)
+    transactions.value = listResult(transactionData)
   } catch (requestError) {
     if (!hasToken()) {
       authenticated.value = false
@@ -261,12 +323,93 @@ async function createStation() {
   })
 }
 
-async function submit(action: () => Promise<void>) {
+function resetTransactionForm() {
+  Object.assign(transactionForm, defaultTransactionDraft())
+}
+
+function resetTransactionEditForm() {
+  Object.assign(transactionEditForm, defaultTransactionDraft())
+}
+
+function transactionPayload(form: TransactionDraft) {
+  return {
+    date: form.date,
+    transaction_type: form.transaction_type,
+    amount: form.amount,
+    currency: form.currency.trim().toUpperCase(),
+    status: form.status,
+    description: form.description,
+  }
+}
+
+function startCreateTransaction() {
+  error.value = ''
+  editingTransactionId.value = null
+  resetTransactionEditForm()
+  addingTransaction.value = true
+}
+
+function cancelCreateTransaction() {
+  addingTransaction.value = false
+  resetTransactionForm()
+}
+
+function startEditTransaction(item: Transaction) {
+  error.value = ''
+  addingTransaction.value = false
+  resetTransactionForm()
+  editingTransactionId.value = item.id
+  Object.assign(transactionEditForm, {
+    date: item.date,
+    transaction_type: item.transaction_type,
+    amount: Number(item.amount),
+    currency: item.currency,
+    status: item.status,
+    description: item.description,
+  })
+}
+
+function cancelEditTransaction() {
+  editingTransactionId.value = null
+  resetTransactionEditForm()
+}
+
+async function createTransaction() {
+  await submit(async () => {
+    const payload = {
+      ...transactionPayload(transactionForm),
+      source: 'manual',
+      category: null,
+      bank_label: null,
+    }
+    const created = await api<Transaction>('/transactions/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    transactions.value.unshift(created)
+    addingTransaction.value = false
+    resetTransactionForm()
+  }, { closeAfter: false })
+}
+
+async function updateTransaction(id: number) {
+  await submit(async () => {
+    const updated = await api<Transaction>(`/transactions/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(transactionPayload(transactionEditForm)),
+    })
+    const index = transactions.value.findIndex((item) => item.id === id)
+    if (index !== -1) transactions.value[index] = updated
+    cancelEditTransaction()
+  }, { closeAfter: false })
+}
+
+async function submit(action: () => Promise<void>, options: { closeAfter?: boolean } = {}) {
   saving.value = true
   error.value = ''
   try {
     await action()
-    closeModal()
+    if (options.closeAfter !== false) closeModal()
   } catch (requestError) {
     error.value = requestError instanceof ApiError ? requestError.message : 'Не удалось сохранить данные'
   } finally {
@@ -291,6 +434,7 @@ function logout() {
   vehicles.value = []
   refuelings.value = []
   stations.value = []
+  transactions.value = []
 }
 
 function applyTheme() {
@@ -313,7 +457,7 @@ onMounted(() => {
 
   <div v-if="!authenticated" class="auth-layout">
     <section class="auth-brand">
-      <div class="brand-mark"><Fuel :size="25" /></div>
+      <div class="brand-mark"><svg class="gold-bag-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bag-body" d="M10.4 12.2h11.2c2.9 2.8 5.2 6.4 5.2 10.3 0 4.3-3.3 6.9-10.8 6.9S5.2 26.8 5.2 22.5c0-3.9 2.3-7.5 5.2-10.3Z"/><path class="bag-neck" d="M11.1 4.4c1.6 1.1 3.1 1.4 4.9 1.4s3.3-.3 4.9-1.4l-2.1 6.1h-5.6l-2.1-6.1Z"/><path class="bag-tie" d="M10.2 12.1c1.7-1.2 3.7-1.8 5.8-1.8s4.1.6 5.8 1.8"/><circle class="bag-coin" cx="16" cy="21" r="4.2"/><path class="bag-dollar" d="M16 18.5v5M14.7 19.5h2c.8 0 1.3.4 1.3 1s-.5 1-1.3 1h-1.4c-.8 0-1.3.4-1.3 1s.5 1 1.3 1h2"/></svg></div>
       <div class="auth-copy">
         <p class="eyebrow">Учет без лишнего шума</p>
         <h1>Brooks</h1>
@@ -362,7 +506,7 @@ onMounted(() => {
   <div v-else class="app-shell">
     <aside class="sidebar" :class="{ open: mobileNavOpen }">
       <div class="sidebar-brand">
-        <div class="brand-mark small"><Fuel :size="20" /></div>
+        <div class="brand-mark small"><svg class="gold-bag-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bag-body" d="M10.4 12.2h11.2c2.9 2.8 5.2 6.4 5.2 10.3 0 4.3-3.3 6.9-10.8 6.9S5.2 26.8 5.2 22.5c0-3.9 2.3-7.5 5.2-10.3Z"/><path class="bag-neck" d="M11.1 4.4c1.6 1.1 3.1 1.4 4.9 1.4s3.3-.3 4.9-1.4l-2.1 6.1h-5.6l-2.1-6.1Z"/><path class="bag-tie" d="M10.2 12.1c1.7-1.2 3.7-1.8 5.8-1.8s4.1.6 5.8 1.8"/><circle class="bag-coin" cx="16" cy="21" r="4.2"/><path class="bag-dollar" d="M16 18.5v5M14.7 19.5h2c.8 0 1.3.4 1.3 1s-.5 1-1.3 1h-1.4c-.8 0-1.3.4-1.3 1s.5 1 1.3 1h2"/></svg></div>
         <strong>Brooks</strong>
         <button class="icon-button mobile-close" title="Закрыть меню" @click="mobileNavOpen = false"><X :size="20" /></button>
       </div>
@@ -412,69 +556,71 @@ onMounted(() => {
         <div v-if="error" class="error-banner"><span>{{ error }}</span><button title="Закрыть" @click="error = ''"><X :size="18" /></button></div>
 
         <template v-if="activeView === 'dashboard'">
-          <section class="metric-grid">
-            <article class="metric">
-              <div class="metric-icon green"><CarFront :size="21" /></div>
-              <span>Активный транспорт</span>
-              <strong>{{ activeVehicles }}</strong>
-              <small>из {{ vehicles.length }} всего</small>
-            </article>
-            <article class="metric">
-              <div class="metric-icon amber"><Fuel :size="21" /></div>
-              <span>Топливо</span>
-              <strong>{{ number(totalFuel, 1) }} л</strong>
-              <small>за все время</small>
-            </article>
-            <article class="metric">
-              <div class="metric-icon blue"><Route :size="21" /></div>
-              <span>Пробег</span>
-              <strong>{{ number(totalDistance) }} км</strong>
-              <small>по заправкам</small>
-            </article>
-            <article class="metric">
-              <div class="metric-icon red"><BarChart3 :size="21" /></div>
-              <span>Расходы</span>
-              <strong>{{ currency(totalCost) }}</strong>
-              <small>{{ number(averageConsumption, 1) }} л / 100 км</small>
-            </article>
-          </section>
-
-          <section class="dashboard-grid">
-            <div class="panel">
-              <div class="section-heading">
-                <div><p class="eyebrow">Последние операции</p><h2>Недавние заправки</h2></div>
-                <button class="link-button" @click="selectView('refuelings')">Все записи <ChevronRight :size="16" /></button>
-              </div>
-              <div v-if="recentRefuelings.length" class="activity-list">
-                <div v-for="item in recentRefuelings" :key="item.id" class="activity-row">
-                  <div class="activity-icon"><Fuel :size="18" /></div>
-                  <div class="activity-main">
-                    <strong>{{ vehicleById(item.vehicle)?.name || 'Транспорт' }}</strong>
-                    <span>{{ formatDate(item.date) }} · {{ item.fuel_type || 'Топливо' }}</span>
-                  </div>
-                  <div class="activity-value">
-                    <strong>{{ currency(item.effective_cost || item.total_cost) }}</strong>
-                    <span>{{ number(item.fuel_quantity, 1) }} л</span>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="empty-state"><Fuel :size="28" /><strong>Заправок пока нет</strong><span>Добавьте первую запись в журнале.</span></div>
+          <section class="finance-panel panel">
+            <div class="section-heading">
+              <div><p class="eyebrow">Финансовый результат</p><h2>Финансовые операции</h2></div>
+              <button class="icon-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
             </div>
-
-            <div class="panel fleet-panel">
-              <div class="section-heading">
-                <div><p class="eyebrow">Автопарк</p><h2>Состояние транспорта</h2></div>
-              </div>
-              <div class="fleet-summary">
-                <div class="fleet-ring"><strong>{{ activeVehicles }}</strong><span>активно</span></div>
-                <div class="fleet-legend">
-                  <div><i class="dot active-dot"></i><span>В работе</span><strong>{{ activeVehicles }}</strong></div>
-                  <div><i class="dot inactive-dot"></i><span>Неактивны</span><strong>{{ vehicles.length - activeVehicles }}</strong></div>
-                  <div><i class="dot station-dot"></i><span>АЗС в справочнике</span><strong>{{ stations.length }}</strong></div>
-                </div>
-              </div>
-              <button class="secondary-button wide" @click="selectView('refuelings')">Открыть заправки <ChevronRight :size="17" /></button>
+            <div class="finance-summary">
+              <div class="finance-summary-item income"><span>Доходы</span><strong>{{ currency(transactionIncome) }}</strong></div>
+              <div class="finance-summary-item expense"><span>Траты</span><strong>{{ currency(transactionExpense) }}</strong></div>
+              <div class="finance-summary-item saving"><span>Накопления</span><strong>{{ currency(transactionSaving) }}</strong></div>
+              <div class="finance-summary-item balance"><span>Итог</span><strong>{{ currency(transactionBalance) }}</strong></div>
             </div>
+            <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Дата</th><th>Тип операции</th><th>Категория</th><th>Сумма</th><th>Лейбл банка</th><th>Описание</th><th></th></tr></thead>
+                  <tbody>
+                    <template v-for="item in transactions" :key="item.id">
+                      <tr v-if="editingTransactionId !== item.id" class="transaction-display-row">
+                        <td><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
+                        <td><span class="transaction-type" :class="item.transaction_type">{{ transactionTypeLabels[item.transaction_type] }}</span></td>
+                        <td><strong>{{ item.category_name_snapshot || 'Без категории' }}</strong></td>
+                        <td><strong class="transaction-amount" :class="item.transaction_type">{{ transactionSign(item.transaction_type) }}{{ currency(item.amount, item.currency) }}</strong></td>
+                        <td>{{ item.bank_label_name_snapshot || 'Не указан' }}</td>
+                        <td><span class="transaction-description">{{ item.description || '—' }}</span></td>
+                        <td>
+                          <div class="transaction-actions">
+                            <button class="icon-button" title="Редактировать операцию" @click="startEditTransaction(item)"><Pencil :size="16" /></button>
+                            <button class="icon-button danger" title="Удалить операцию" @click="remove('/transactions/', item.id, transactionTitle(item))"><Trash2 :size="17" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr v-else class="transaction-edit-row">
+                        <td><input v-model="transactionEditForm.date" required type="date"></td>
+                        <td><select v-model="transactionEditForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
+                        <td><span class="muted-cell">{{ item.category_name_snapshot || 'Без категории' }}</span></td>
+                        <td><input v-model.number="transactionEditForm.amount" required type="number" min="0.01" step="0.01"></td>
+                        <td><span class="muted-cell">{{ item.bank_label_name_snapshot || 'Не указан' }}</span></td>
+                        <td><input v-model.trim="transactionEditForm.description" placeholder="Описание"></td>
+                        <td>
+                          <div class="transaction-actions editing">
+                            <button class="icon-button" title="Сохранить" :disabled="saving" @click="updateTransaction(item.id)"><Check :size="16" /></button>
+                            <button class="icon-button" title="Отмена" :disabled="saving" @click="cancelEditTransaction"><X :size="16" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr v-if="addingTransaction" class="transaction-edit-row transaction-create-row">
+                      <td><input v-model="transactionForm.date" required type="date"></td>
+                      <td><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
+                      <td><span class="muted-cell">Без категории</span></td>
+                      <td><input v-model.number="transactionForm.amount" required type="number" min="0.01" step="0.01"></td>
+                      <td><span class="muted-cell">Не указан</span></td>
+                      <td><input v-model.trim="transactionForm.description" placeholder="Описание"></td>
+                      <td>
+                        <div class="transaction-actions editing">
+                          <button class="icon-button" title="Сохранить" :disabled="saving" @click="createTransaction"><Check :size="16" /></button>
+                          <button class="icon-button" title="Отмена" :disabled="saving" @click="cancelCreateTransaction"><X :size="16" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div v-else class="empty-state"><WalletCards :size="28" /><strong>Финансовых операций пока нет</strong><span>Добавьте доход, трату или накопление.</span><button class="secondary-button" @click="startCreateTransaction"><Plus :size="17" />Операция</button></div>
           </section>
         </template>
 
@@ -598,6 +744,7 @@ onMounted(() => {
         <label>Номер<input v-model.trim="stationForm.number" placeholder="154"></label>
         <label class="full">Адрес<input v-model.trim="stationForm.address" placeholder="Город, улица, дом"></label>
       </form>
+
 
       <p v-if="error" class="form-error modal-error">{{ error }}</p>
       <footer>
