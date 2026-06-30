@@ -25,7 +25,7 @@ import {
 import { api, ApiError, hasToken, listResult, setToken } from '@/api'
 
 type View = 'dashboard' | 'refuelings'
-type Modal = 'vehicle' | 'refueling' | 'station' | 'about' | null
+type Modal = 'vehicle' | 'refueling' | 'station' | 'bankLabel' | 'about' | 'delete' | null
 type TransactionType = 'income' | 'expense' | 'saving'
 type TransactionStatus = 'confirmed' | 'draft' | 'needs_review' | 'ignored'
 type SortDirection = 'asc' | 'desc' | null
@@ -69,6 +69,12 @@ interface GasStation {
   company: string
 }
 
+interface BankLabel {
+  id: number
+  name: string
+  description: string
+}
+
 interface Transaction {
   id: number
   date: string
@@ -91,6 +97,7 @@ interface TransactionDraft {
   currency: string
   status: TransactionStatus
   description: string
+  bank_label: number | null
 }
 
 const authenticated = ref(hasToken())
@@ -106,12 +113,15 @@ const saving = ref(false)
 const error = ref('')
 const search = ref('')
 const modal = ref<Modal>(null)
+const pendingDelete = ref<{ path: string, id: number, label: string } | null>(null)
+const bankLabelForm = reactive({ name: '', description: '' })
 const isDarkTheme = ref(localStorage.getItem('brooks-theme') === 'dark')
 
 const vehicles = ref<Vehicle[]>([])
 const refuelings = ref<Refueling[]>([])
 const stations = ref<GasStation[]>([])
 const transactions = ref<Transaction[]>([])
+const bankLabels = ref<BankLabel[]>([])
 
 const vehicleForm = reactive({
   name: '',
@@ -152,6 +162,7 @@ function defaultTransactionDraft(): TransactionDraft {
     currency: 'RUB',
     status: 'confirmed',
     description: '',
+    bank_label: null,
   }
 }
 
@@ -165,6 +176,8 @@ const modalTitle = computed(() => {
   if (modal.value === 'vehicle') return 'Транспорт'
   if (modal.value === 'refueling') return 'Заправка'
   if (modal.value === 'station') return 'Автозаправочная станция'
+  if (modal.value === 'bankLabel') return 'Банк'
+  if (modal.value === 'delete') return 'Удалить запись'
   return 'О нас'
 })
 const transactionIncome = computed(() => transactions.value
@@ -294,16 +307,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [vehicleData, refuelingData, stationData, transactionData] = await Promise.all([
+    const [vehicleData, refuelingData, stationData, transactionData, bankLabelData] = await Promise.all([
       api<Vehicle[] | { results: Vehicle[] }>('/vehicle/'),
       api<Refueling[] | { results: Refueling[] }>('/refuelings/'),
       api<GasStation[] | { results: GasStation[] }>('/gasStation/'),
       api<Transaction[] | { results: Transaction[] }>('/transactions/'),
+      api<BankLabel[] | { results: BankLabel[] }>('/bank-labels/'),
     ])
     vehicles.value = listResult(vehicleData)
     refuelings.value = listResult(refuelingData)
     stations.value = listResult(stationData)
     transactions.value = listResult(transactionData)
+    bankLabels.value = listResult(bankLabelData)
   } catch (requestError) {
     if (!hasToken()) {
       authenticated.value = false
@@ -331,6 +346,7 @@ function openModal(type: Exclude<Modal, null>) {
 
 function closeModal() {
   modal.value = null
+  pendingDelete.value = null
 }
 
 async function createVehicle() {
@@ -376,6 +392,18 @@ async function createStation() {
   })
 }
 
+async function createBankLabel() {
+  await submit(async () => {
+    const created = await api<BankLabel>('/bank-labels/', {
+      method: 'POST',
+      body: JSON.stringify(bankLabelForm),
+    })
+    bankLabels.value.push(created)
+    bankLabels.value.sort((first, second) => first.name.localeCompare(second.name, 'ru', { sensitivity: 'base' }))
+    Object.assign(bankLabelForm, { name: '', description: '' })
+  })
+}
+
 function resetTransactionForm() {
   Object.assign(transactionForm, defaultTransactionDraft())
 }
@@ -392,6 +420,7 @@ function transactionPayload(form: TransactionDraft) {
     currency: form.currency.trim().toUpperCase(),
     status: form.status,
     description: form.description,
+    bank_label: form.bank_label,
   }
 }
 
@@ -419,6 +448,7 @@ function startEditTransaction(item: Transaction) {
     currency: item.currency,
     status: item.status,
     description: item.description,
+    bank_label: item.bank_label,
   })
 }
 
@@ -433,7 +463,6 @@ async function createTransaction() {
       ...transactionPayload(transactionForm),
       source: 'manual',
       category: null,
-      bank_label: null,
     }
     const created = await api<Transaction>('/transactions/', {
       method: 'POST',
@@ -470,14 +499,25 @@ async function submit(action: () => Promise<void>, options: { closeAfter?: boole
   }
 }
 
-async function remove(path: string, id: number, label: string) {
-  if (!window.confirm(`Удалить «${label}»?`)) return
+function remove(path: string, id: number, label: string) {
   error.value = ''
+  pendingDelete.value = { path, id, label }
+  modal.value = 'delete'
+}
+
+async function confirmRemove() {
+  if (!pendingDelete.value) return
+  saving.value = true
+  error.value = ''
+  const target = pendingDelete.value
   try {
-    await api(`${path}${id}/`, { method: 'DELETE' })
+    await api(`${target.path}${target.id}/`, { method: 'DELETE' })
+    closeModal()
     await loadData()
   } catch (requestError) {
     error.value = requestError instanceof ApiError ? requestError.message : 'Не удалось удалить запись'
+  } finally {
+    saving.value = false
   }
 }
 
@@ -488,6 +528,7 @@ function logout() {
   refuelings.value = []
   stations.value = []
   transactions.value = []
+  bankLabels.value = []
 }
 
 function applyTheme() {
@@ -619,7 +660,10 @@ onMounted(() => {
           <section class="finance-panel panel">
             <div class="section-heading">
               <div><h2>Финансовые операции</h2></div>
-              <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
+              <div class="finance-heading-actions">
+                <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
+                <button class="primary-button" type="button" @click="openModal('bankLabel')"><Plus :size="17" />Добавить банк</button>
+              </div>
             </div>
             <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">
               <div class="table-scroll">
@@ -677,7 +721,7 @@ onMounted(() => {
                       <td><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
                       <td><span class="muted-cell">Без категории</span></td>
                       <td><input v-model.number="transactionForm.amount" required type="number" min="0.01" step="0.01"></td>
-                      <td><span class="muted-cell">Не указан</span></td>
+                      <td><select v-model.number="transactionForm.bank_label"><option :value="null">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
                       <td><input v-model.trim="transactionForm.description" placeholder="Описание"></td>
                       <td>
                         <div class="transaction-actions editing">
@@ -706,7 +750,7 @@ onMounted(() => {
                         <td><select v-model="transactionEditForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
                         <td><span class="muted-cell">{{ item.category_name_snapshot || 'Без категории' }}</span></td>
                         <td><input v-model.number="transactionEditForm.amount" required type="number" min="0.01" step="0.01"></td>
-                        <td><span class="muted-cell">{{ item.bank_label_name_snapshot || 'Не указан' }}</span></td>
+                        <td><select v-model.number="transactionEditForm.bank_label"><option :value="null">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
                         <td><input v-model.trim="transactionEditForm.description" placeholder="Описание"></td>
                         <td>
                           <div class="transaction-actions editing">
@@ -809,7 +853,7 @@ onMounted(() => {
     <section class="modal">
       <header>
         <div>
-          <p class="eyebrow">{{ modal === 'about' ? 'Информация' : 'Новая запись' }}</p>
+          <p class="eyebrow">{{ modal === 'about' ? 'Информация' : modal === 'delete' ? 'Подтверждение' : 'Новая запись' }}</p>
           <h2>{{ modalTitle }}</h2>
         </div>
         <button class="icon-button" :class="{ danger: modal === 'about' }" title="Закрыть" @click="closeModal"><X :size="20" /></button>
@@ -844,6 +888,10 @@ onMounted(() => {
         <label>Номер<input v-model.trim="stationForm.number" placeholder="154"></label>
         <label class="full">Адрес<input v-model.trim="stationForm.address" placeholder="Город, улица, дом"></label>
       </form>
+      <form v-if="modal === 'bankLabel'" id="bankLabel-form" @submit.prevent="createBankLabel">
+        <label class="full">Название<input v-model.trim="bankLabelForm.name" required placeholder="Например, Т-Банк *2726"></label>
+        <label class="full">Описание<textarea v-model.trim="bankLabelForm.description" rows="3" placeholder="Например, Основная карта"></textarea></label>
+      </form>
 
 
       <div v-if="modal === 'about'" class="about-content">
@@ -853,12 +901,25 @@ onMounted(() => {
         <p>Мы развиваем Brooks постепенно: улучшаем интерфейс, расширяем возможности учета, повышаем надежность работы с данными и добавляем функции, которые делают продукт удобнее в ежедневном использовании.</p>
       </div>
 
+      <div v-if="modal === 'delete'" class="delete-content">
+        <p>Вы действительно хотите удалить «{{ pendingDelete?.label }}»?</p>
+        <span>Это действие нельзя будет отменить после удаления.</span>
+      </div>
+
       <p v-if="error" class="form-error modal-error">{{ error }}</p>
       <footer v-if="modal !== 'about'">
-        <button class="secondary-button" type="button" @click="closeModal">Отмена</button>
-        <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving">
-          <RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Сохранить
-        </button>
+        <template v-if="modal === 'delete'">
+          <button class="danger-button" type="button" :disabled="saving" @click="closeModal">Отмена</button>
+          <button class="secondary-button" type="button" :disabled="saving" @click="confirmRemove">
+            <RefreshCw v-if="saving" class="spin" :size="17" /><Trash2 v-else :size="17" />Удалить
+          </button>
+        </template>
+        <template v-else>
+          <button class="secondary-button" type="button" @click="closeModal">Отмена</button>
+          <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving">
+            <RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Сохранить
+          </button>
+        </template>
       </footer>
     </section>
   </div>
