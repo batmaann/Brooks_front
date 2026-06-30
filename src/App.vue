@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronUp,
   CircleGauge,
+  Eye,
   Fuel,
   LayoutDashboard,
   Lightbulb,
@@ -113,6 +114,8 @@ const saving = ref(false)
 const error = ref('')
 const search = ref('')
 const modal = ref<Modal>(null)
+const dashboardControlsOpen = ref(false)
+const dashboardVisibility = reactive({ summary: true, addBank: true })
 const pendingDelete = ref<{ path: string, id: number, label: string } | null>(null)
 const bankLabelForm = reactive({ name: '', description: '' })
 const isDarkTheme = ref(localStorage.getItem('brooks-theme') === 'dark')
@@ -334,6 +337,7 @@ function selectView(view: View) {
   activeView.value = view
   search.value = ''
   mobileNavOpen.value = false
+  dashboardControlsOpen.value = false
 }
 
 function openModal(type: Exclude<Modal, null>) {
@@ -651,7 +655,7 @@ onMounted(() => {
         <div v-if="error" class="error-banner"><span>{{ error }}</span><button title="Закрыть" @click="error = ''"><X :size="18" /></button></div>
 
         <template v-if="activeView === 'dashboard'">
-          <div class="finance-summary">
+          <div v-if="dashboardVisibility.summary" class="finance-summary">
             <div class="finance-summary-item income"><span>Доходы</span><strong>{{ currency(transactionIncome) }}</strong></div>
             <div class="finance-summary-item expense"><span>Траты</span><strong>{{ currency(transactionExpense) }}</strong></div>
             <div class="finance-summary-item saving"><span>Накопления</span><strong>{{ currency(transactionSaving) }}</strong></div>
@@ -662,7 +666,17 @@ onMounted(() => {
               <div><h2>Финансовые операции</h2></div>
               <div class="finance-heading-actions">
                 <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
-                <button class="primary-button" type="button" @click="openModal('bankLabel')"><Plus :size="17" />Добавить банк</button>
+                <button v-if="dashboardVisibility.addBank" class="primary-button" type="button" @click="openModal('bankLabel')"><Plus :size="17" />Добавить банк</button>
+                <div class="visibility-menu">
+                  <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="dashboardControlsOpen = !dashboardControlsOpen"><Eye :size="18" /></button>
+                  <div v-if="dashboardControlsOpen" class="visibility-dropdown">
+                    <label><input v-model="dashboardVisibility.summary" type="checkbox"><span>Виджеты</span></label>
+                    <label><input v-model="dashboardVisibility.addBank" type="checkbox"><span>Добавить банк</span></label>
+                    <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>Добавить категории</span></label>
+                    <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
+                    <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>Прикрепить файл</span></label>
+                  </div>
+                </div>
               </div>
             </div>
             <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">

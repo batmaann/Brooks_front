@@ -105,6 +105,14 @@ textarea { resize: vertical; }
 .section-heading h2 { margin-top: 5px; font-size: 18px; }
 .activity-list { margin-top: 14px; }
 .finance-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.visibility-menu { position: relative; display: inline-flex; }
+.visibility-dropdown { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; width: 190px; padding: 8px; display: grid; gap: 4px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 16px 38px rgba(20, 35, 29, .16); }
+.visibility-dropdown label { min-height: 34px; padding: 0 8px; display: flex; align-items: center; gap: 9px; border-radius: 6px; color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; }
+.visibility-dropdown label:hover { background: #f2f6f4; }
+.visibility-dropdown label.disabled { color: var(--muted); opacity: .58; cursor: not-allowed; }
+.visibility-dropdown label.disabled:hover { background: #eef2f0; color: var(--muted); }
+.visibility-dropdown label.disabled input { cursor: not-allowed; }
+.visibility-dropdown input { width: 15px; height: 15px; accent-color: var(--green); }
 .activity-row { min-height: 68px; display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 12px; border-top: 1px solid #edf0ef; }
 .activity-icon { width: 34px; height: 34px; display: grid; place-items: center; color: var(--green); background: var(--green-soft); border-radius: 6px; }
 .activity-main, .activity-value { display: grid; gap: 3px; }
@@ -258,6 +266,10 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea { color: var(--ink); background: #111a17; border-color: #35443f; }
+[data-theme="dark"] .visibility-dropdown { background: #151f1c; border-color: var(--line); box-shadow: 0 18px 44px rgba(0, 0, 0, .42); }
+[data-theme="dark"] .visibility-dropdown label { color: var(--ink); }
+[data-theme="dark"] .visibility-dropdown label.disabled:hover { background: #202b27; color: var(--muted); }
+[data-theme="dark"] .visibility-dropdown label:hover { background: #1b2a25; }
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder { color: #75857f; }
 [data-theme="dark"] input:focus,
