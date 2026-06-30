@@ -115,6 +115,8 @@ const error = ref('')
 const search = ref('')
 const modal = ref<Modal>(null)
 const dashboardControlsOpen = ref(false)
+const selectedBankLabelId = ref<number | null>(null)
+const bankLabelEditForm = reactive({ name: '', description: '' })
 const dashboardVisibility = reactive({ summary: true, addBank: true })
 const pendingDelete = ref<{ path: string, id: number, label: string } | null>(null)
 const bankLabelForm = reactive({ name: '', description: '' })
@@ -349,6 +351,8 @@ function openModal(type: Exclude<Modal, null>) {
 }
 
 function closeModal() {
+  selectedBankLabelId.value = null
+  Object.assign(bankLabelEditForm, { name: '', description: '' })
   modal.value = null
   pendingDelete.value = null
 }
@@ -404,8 +408,34 @@ async function createBankLabel() {
     })
     bankLabels.value.push(created)
     bankLabels.value.sort((first, second) => first.name.localeCompare(second.name, 'ru', { sensitivity: 'base' }))
+    selectedBankLabelId.value = created.id
+    Object.assign(bankLabelEditForm, { name: created.name, description: created.description || '' })
     Object.assign(bankLabelForm, { name: '', description: '' })
   })
+}
+
+function selectBankLabelForEdit(id: number | null) {
+  selectedBankLabelId.value = id
+  const bankLabel = bankLabels.value.find((item) => item.id === id)
+  Object.assign(bankLabelEditForm, {
+    name: bankLabel?.name || '',
+    description: bankLabel?.description || '',
+  })
+}
+
+async function updateBankLabel() {
+  if (!selectedBankLabelId.value) return
+  await submit(async () => {
+    const updated = await api<BankLabel>(`/bank-labels/${selectedBankLabelId.value}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(bankLabelEditForm),
+    })
+    const index = bankLabels.value.findIndex((item) => item.id === updated.id)
+    if (index !== -1) bankLabels.value[index] = updated
+    bankLabels.value.sort((first, second) => first.name.localeCompare(second.name, 'ru', { sensitivity: 'base' }))
+    selectBankLabelForEdit(updated.id)
+    await loadData()
+  }, { closeAfter: false })
 }
 
 function resetTransactionForm() {
@@ -666,7 +696,7 @@ onMounted(() => {
               <div><h2>Финансовые операции</h2></div>
               <div class="finance-heading-actions">
                 <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction"><Plus :size="18" /></button>
-                <button v-if="dashboardVisibility.addBank" class="primary-button" type="button" @click="openModal('bankLabel')"><Plus :size="17" />Добавить банк</button>
+                <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="openModal('bankLabel')">Добавить банк</button>
                 <div class="visibility-menu">
                   <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="dashboardControlsOpen = !dashboardControlsOpen"><Eye :size="18" /></button>
                   <div v-if="dashboardControlsOpen" class="visibility-dropdown">
@@ -864,7 +894,7 @@ onMounted(() => {
   </div>
 
   <div v-if="modal" class="modal-backdrop" @mousedown.self="closeModal">
-    <section class="modal">
+    <section class="modal" :class="{ wide: modal === 'bankLabel' }">
       <header>
         <div>
           <p class="eyebrow">{{ modal === 'about' ? 'Информация' : modal === 'delete' ? 'Подтверждение' : 'Новая запись' }}</p>
@@ -872,7 +902,6 @@ onMounted(() => {
         </div>
         <button class="icon-button" :class="{ danger: modal === 'about' }" title="Закрыть" @click="closeModal"><X :size="20" /></button>
       </header>
-
       <form v-if="modal === 'vehicle'" id="vehicle-form" @submit.prevent="createVehicle">
         <label class="full">Название<input v-model.trim="vehicleForm.name" required placeholder="Например, Рабочая Toyota"></label>
         <label>Марка<input v-model.trim="vehicleForm.brand" placeholder="Toyota"></label>
@@ -902,10 +931,23 @@ onMounted(() => {
         <label>Номер<input v-model.trim="stationForm.number" placeholder="154"></label>
         <label class="full">Адрес<input v-model.trim="stationForm.address" placeholder="Город, улица, дом"></label>
       </form>
-      <form v-if="modal === 'bankLabel'" id="bankLabel-form" @submit.prevent="createBankLabel">
-        <label class="full">Название<input v-model.trim="bankLabelForm.name" required placeholder="Например, Т-Банк *2726"></label>
-        <label class="full">Описание<textarea v-model.trim="bankLabelForm.description" rows="3" placeholder="Например, Основная карта"></textarea></label>
-      </form>
+
+      <div v-if="modal === 'bankLabel'" class="bank-label-editor">
+        <form class="bank-label-pane" id="bankLabel-create-form" @submit.prevent="createBankLabel">
+          <div><p class="eyebrow">Новый банк</p><h3>Добавление</h3></div>
+          <label>Название<input v-model.trim="bankLabelForm.name" required placeholder="Например, Т-Банк *2726"></label>
+          <label>Описание<textarea v-model.trim="bankLabelForm.description" rows="4" placeholder="Например, Основная карта"></textarea></label>
+          <button class="primary-button" type="submit" :disabled="saving"><RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Добавить</button>
+        </form>
+
+        <form class="bank-label-pane" id="bankLabel-edit-form" @submit.prevent="updateBankLabel">
+          <div><p class="eyebrow">Существующий банк</p><h3>Редактирование</h3></div>
+          <label>Банк<select :value="selectedBankLabelId" @change="selectBankLabelForEdit(($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null)"><option :value="null">Выберите банк</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></label>
+          <label>Название<input v-model.trim="bankLabelEditForm.name" :disabled="!selectedBankLabelId" required placeholder="Название банка"></label>
+          <label>Описание<textarea v-model.trim="bankLabelEditForm.description" :disabled="!selectedBankLabelId" rows="4" placeholder="Описание банка"></textarea></label>
+          <button class="secondary-button" type="submit" :disabled="saving || !selectedBankLabelId"><RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Сохранить</button>
+        </form>
+      </div>
 
 
       <div v-if="modal === 'about'" class="about-content">
@@ -921,7 +963,7 @@ onMounted(() => {
       </div>
 
       <p v-if="error" class="form-error modal-error">{{ error }}</p>
-      <footer v-if="modal !== 'about'">
+      <footer v-if="modal !== 'about' && modal !== 'bankLabel'">
         <template v-if="modal === 'delete'">
           <button class="danger-button" type="button" :disabled="saving" @click="closeModal">Отмена</button>
           <button class="secondary-button" type="button" :disabled="saving" @click="confirmRemove">
