@@ -5,7 +5,9 @@ import {
   CalendarDays,
   CarFront,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CircleGauge,
   Fuel,
   LayoutDashboard,
@@ -26,6 +28,8 @@ type View = 'dashboard' | 'refuelings'
 type Modal = 'vehicle' | 'refueling' | 'station' | null
 type TransactionType = 'income' | 'expense' | 'saving'
 type TransactionStatus = 'confirmed' | 'draft' | 'needs_review' | 'ignored'
+type SortDirection = 'asc' | 'desc' | null
+type TransactionSortKey = 'date' | 'transaction_type' | 'category' | 'amount' | 'bank_label' | 'description'
 
 interface Vehicle {
   id: number
@@ -135,6 +139,10 @@ const transactionForm = reactive(defaultTransactionDraft())
 const editingTransactionId = ref<number | null>(null)
 const transactionEditForm = reactive(defaultTransactionDraft())
 const addingTransaction = ref(false)
+const transactionSort = reactive<{ key: TransactionSortKey | null, direction: SortDirection }>({
+  key: null,
+  direction: null,
+})
 
 function defaultTransactionDraft(): TransactionDraft {
   return {
@@ -163,6 +171,20 @@ const transactionSaving = computed(() => transactions.value
   .filter((item) => item.transaction_type === 'saving')
   .reduce((sum, item) => sum + Number(item.amount), 0))
 const transactionBalance = computed(() => transactionIncome.value - transactionExpense.value - transactionSaving.value)
+const sortedTransactions = computed(() => {
+  if (!transactionSort.key || !transactionSort.direction) return transactions.value
+
+  const directionMultiplier = transactionSort.direction === 'asc' ? 1 : -1
+  return [...transactions.value].sort((first, second) => {
+    const firstValue = transactionSortValue(first, transactionSort.key!)
+    const secondValue = transactionSortValue(second, transactionSort.key!)
+    const result = typeof firstValue === 'number' && typeof secondValue === 'number'
+      ? firstValue - secondValue
+      : String(firstValue).localeCompare(String(secondValue), 'ru', { numeric: true, sensitivity: 'base' })
+
+    return result * directionMultiplier
+  })
+})
 
 const filteredVehicles = computed(() => {
   const query = search.value.toLowerCase()
@@ -216,6 +238,31 @@ function transactionTitle(item: Transaction) {
 
 function transactionSign(type: TransactionType) {
   return type === 'income' ? '+' : '-'
+}
+
+function transactionSortValue(item: Transaction, key: TransactionSortKey) {
+  if (key === 'date') return new Date(`${item.date}T00:00:00`).getTime()
+  if (key === 'transaction_type') return transactionTypeLabels[item.transaction_type]
+  if (key === 'category') return item.category_name_snapshot || 'Без категории'
+  if (key === 'amount') return Number(item.amount)
+  if (key === 'bank_label') return item.bank_label_name_snapshot || 'Не указан'
+  return item.description || ''
+}
+
+function toggleTransactionSort(key: TransactionSortKey) {
+  if (transactionSort.key !== key) {
+    transactionSort.key = key
+    transactionSort.direction = 'asc'
+    return
+  }
+
+  if (transactionSort.direction === 'asc') {
+    transactionSort.direction = 'desc'
+    return
+  }
+
+  transactionSort.key = null
+  transactionSort.direction = null
 }
 
 async function authenticate() {
@@ -570,9 +617,55 @@ onMounted(() => {
             <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Дата</th><th>Тип операции</th><th>Категория</th><th>Сумма</th><th>Лейбл банка</th><th>Описание</th><th></th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'date' }" type="button" @click="toggleTransactionSort('date')">
+                          <span>Дата</span>
+                          <ChevronUp v-if="transactionSort.key === 'date' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'date' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'transaction_type' }" type="button" @click="toggleTransactionSort('transaction_type')">
+                          <span>Тип операции</span>
+                          <ChevronUp v-if="transactionSort.key === 'transaction_type' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'transaction_type' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'category' }" type="button" @click="toggleTransactionSort('category')">
+                          <span>Категория</span>
+                          <ChevronUp v-if="transactionSort.key === 'category' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'category' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'amount' }" type="button" @click="toggleTransactionSort('amount')">
+                          <span>Сумма</span>
+                          <ChevronUp v-if="transactionSort.key === 'amount' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'amount' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'bank_label' }" type="button" @click="toggleTransactionSort('bank_label')">
+                          <span>Лейбл банка</span>
+                          <ChevronUp v-if="transactionSort.key === 'bank_label' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'bank_label' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th>
+                        <button class="sort-header" :class="{ active: transactionSort.key === 'description' }" type="button" @click="toggleTransactionSort('description')">
+                          <span>Описание</span>
+                          <ChevronUp v-if="transactionSort.key === 'description' && transactionSort.direction === 'asc'" :size="14" />
+                          <ChevronDown v-else-if="transactionSort.key === 'description' && transactionSort.direction === 'desc'" :size="14" />
+                        </button>
+                      </th>
+                      <th></th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <template v-for="item in transactions" :key="item.id">
+                    <template v-for="item in sortedTransactions" :key="item.id">
                       <tr v-if="editingTransactionId !== item.id" class="transaction-display-row">
                         <td><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
                         <td><span class="transaction-type" :class="item.transaction_type">{{ transactionTypeLabels[item.transaction_type] }}</span></td>
