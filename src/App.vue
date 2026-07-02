@@ -11,6 +11,10 @@ import {
   CircleGauge,
   Eye,
   Fuel,
+  Banknote,
+  BriefcaseBusiness,
+  ChartNoAxesCombined,
+  Home,
   LayoutDashboard,
   Lightbulb,
   LogOut,
@@ -31,6 +35,7 @@ type TransactionType = 'income' | 'expense' | 'saving'
 type TransactionStatus = 'confirmed' | 'draft' | 'needs_review' | 'ignored'
 type SortDirection = 'asc' | 'desc' | null
 type TransactionSortKey = 'date' | 'transaction_type' | 'section' | 'category' | 'amount' | 'bank_label' | 'description'
+type RefuelingColumnKey = 'date' | 'vehicle' | 'station_fuel' | 'mileage' | 'fuel_quantity' | 'is_full_tank' | 'cost'
 
 interface Vehicle {
   id: number
@@ -144,6 +149,25 @@ const bankLabelEditForm = reactive({ name: '', description: '' })
 const categoryEditForm = reactive({ name: '', description: '' })
 const dashboardVisibility = reactive({ summary: true, addBank: true, addCategory: true })
 const refuelingVisibility = reactive({ summary: true, vehicles: true, stations: true })
+const refuelingColumnOrder = ref<RefuelingColumnKey[]>(['date', 'vehicle', 'station_fuel', 'mileage', 'fuel_quantity', 'is_full_tank', 'cost'])
+const refuelingColumnVisibility = reactive<Record<RefuelingColumnKey, boolean>>({
+  date: true,
+  vehicle: true,
+  station_fuel: true,
+  mileage: true,
+  fuel_quantity: true,
+  is_full_tank: true,
+  cost: true,
+})
+const refuelingColumnLabels: Record<RefuelingColumnKey, string> = {
+  date: 'Дата',
+  vehicle: 'Транспорт',
+  station_fuel: 'АЗС / топливо',
+  mileage: 'Пробег',
+  fuel_quantity: 'Объем',
+  is_full_tank: 'Полный бак',
+  cost: 'Стоимость',
+}
 const pendingDelete = ref<{ path: string, id: number, label: string } | null>(null)
 const bankLabelForm = reactive({ name: '', description: '' })
 const categoryForm = reactive({ name: '', description: '' })
@@ -184,12 +208,32 @@ const editingTransactionId = ref<number | null>(null)
 const editingRefuelingId = ref<number | null>(null)
 const transactionEditForm = reactive(defaultTransactionDraft())
 const addingTransaction = ref(false)
+const selectedTransactionIds = ref<number[]>([])
+const selectedRefuelingIds = ref<number[]>([])
+const bulkCategoryValue = ref('')
+const bulkSectionValue = ref('')
+const bulkRefuelingVehicleValue = ref('')
+const bulkRefuelingStationValue = ref('')
 const transactionSort = reactive<{ key: TransactionSortKey | null, direction: SortDirection }>({
   key: null,
   direction: null,
 })
+const refuelingSort = reactive<{ key: RefuelingColumnKey | null, direction: SortDirection }>({
+  key: null,
+  direction: null,
+})
 const transactionColumnOrder = ref<TransactionSortKey[]>(['date', 'transaction_type', 'section', 'category', 'amount', 'bank_label', 'description'])
+const transactionColumnVisibility = reactive<Record<TransactionSortKey, boolean>>({
+  date: true,
+  transaction_type: true,
+  section: true,
+  category: true,
+  amount: true,
+  bank_label: true,
+  description: true,
+})
 const draggedTransactionColumn = ref<TransactionSortKey | null>(null)
+const draggedRefuelingColumn = ref<RefuelingColumnKey | null>(null)
 const transactionColumnLabels: Record<TransactionSortKey, string> = {
   date: 'Дата',
   transaction_type: 'Тип операции',
@@ -222,6 +266,46 @@ function finishTransactionColumnDrag() {
   draggedTransactionColumn.value = null
 }
 
+function startRefuelingColumnDrag(key: RefuelingColumnKey) {
+  draggedRefuelingColumn.value = key
+}
+
+function dropRefuelingColumn(targetKey: RefuelingColumnKey) {
+  const sourceKey = draggedRefuelingColumn.value
+  if (!sourceKey || sourceKey === targetKey) return
+
+  const nextOrder = [...refuelingColumnOrder.value]
+  const sourceIndex = nextOrder.indexOf(sourceKey)
+  const targetIndex = nextOrder.indexOf(targetKey)
+  if (sourceIndex === -1 || targetIndex === -1) return
+
+  nextOrder.splice(sourceIndex, 1)
+  nextOrder.splice(targetIndex, 0, sourceKey)
+  refuelingColumnOrder.value = nextOrder
+}
+
+function finishRefuelingColumnDrag() {
+  draggedRefuelingColumn.value = null
+}
+
+function canToggleTransactionColumn(key: TransactionSortKey) {
+  return transactionColumnVisibility[key] || visibleTransactionColumns.value.length > 1
+}
+
+function toggleTransactionColumn(key: TransactionSortKey, checked: boolean) {
+  if (!checked && visibleTransactionColumns.value.length <= 1) return
+  transactionColumnVisibility[key] = checked
+}
+
+function canToggleRefuelingColumn(key: RefuelingColumnKey) {
+  return refuelingColumnVisibility[key] || visibleRefuelingColumns.value.length > 1
+}
+
+function toggleRefuelingColumn(key: RefuelingColumnKey, checked: boolean) {
+  if (!checked && visibleRefuelingColumns.value.length <= 1) return
+  refuelingColumnVisibility[key] = checked
+}
+
 
 function defaultTransactionDraft(): TransactionDraft {
   return {
@@ -238,8 +322,12 @@ function defaultTransactionDraft(): TransactionDraft {
 }
 
 const navItems = [
-  { id: 'dashboard' as View, label: 'Главная', icon: LayoutDashboard },
-  { id: 'refuelings' as View, label: 'Заправки', icon: Fuel },
+  { id: 'dashboard' as View, label: 'Главная', icon: LayoutDashboard, disabled: false },
+  { id: 'refuelings' as View, label: 'Заправки', icon: Fuel, disabled: false },
+  { id: 'savings', label: 'Накопления', icon: Banknote, disabled: true },
+  { id: 'investments', label: 'Инвестиции', icon: ChartNoAxesCombined, disabled: true },
+  { id: 'utilities', label: 'ЖКХ', icon: Home, disabled: true },
+  { id: 'business', label: 'Бизнес', icon: BriefcaseBusiness, disabled: true },
 ]
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
@@ -264,6 +352,9 @@ const transactionSaving = computed(() => transactions.value
 const transactionBalance = computed(() => transactionIncome.value - transactionExpense.value - transactionSaving.value)
 const refuelingTotalCost = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.effective_cost || item.total_cost || 0), 0))
 const refuelingTotalFuel = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.fuel_quantity || 0), 0))
+const visibleTransactionColumns = computed(() => transactionColumnOrder.value.filter((key) => transactionColumnVisibility[key]))
+const visibleRefuelingColumns = computed(() => refuelingColumnOrder.value.filter((key) => refuelingColumnVisibility[key]))
+
 const sortedTransactions = computed(() => {
   if (!transactionSort.key || !transactionSort.direction) return transactions.value
 
@@ -271,6 +362,21 @@ const sortedTransactions = computed(() => {
   return [...transactions.value].sort((first, second) => {
     const firstValue = transactionSortValue(first, transactionSort.key!)
     const secondValue = transactionSortValue(second, transactionSort.key!)
+    const result = typeof firstValue === 'number' && typeof secondValue === 'number'
+      ? firstValue - secondValue
+      : String(firstValue).localeCompare(String(secondValue), 'ru', { numeric: true, sensitivity: 'base' })
+
+    return result * directionMultiplier
+  })
+})
+
+const sortedRefuelings = computed(() => {
+  if (!refuelingSort.key || !refuelingSort.direction) return refuelings.value
+
+  const directionMultiplier = refuelingSort.direction === 'asc' ? 1 : -1
+  return [...refuelings.value].sort((first, second) => {
+    const firstValue = refuelingSortValue(first, refuelingSort.key!)
+    const secondValue = refuelingSortValue(second, refuelingSort.key!)
     const result = typeof firstValue === 'number' && typeof secondValue === 'number'
       ? firstValue - secondValue
       : String(firstValue).localeCompare(String(secondValue), 'ru', { numeric: true, sensitivity: 'base' })
@@ -296,6 +402,12 @@ const visibleTransactions = computed(() => {
     currency(item.amount, item.currency),
   ].some((value) => value.toLowerCase().includes(query)))
 })
+const selectedTransactionCount = computed(() => selectedTransactionIds.value.length)
+const selectedRefuelingCount = computed(() => selectedRefuelingIds.value.length)
+const visibleTransactionIds = computed(() => visibleTransactions.value.map((item) => item.id))
+const allVisibleTransactionsSelected = computed(() => visibleTransactionIds.value.length > 0 && visibleTransactionIds.value.every((id) => selectedTransactionIds.value.includes(id)))
+const visibleRefuelingIds = computed(() => filteredRefuelings.value.map((item) => item.id))
+const allVisibleRefuelingsSelected = computed(() => visibleRefuelingIds.value.length > 0 && visibleRefuelingIds.value.every((id) => selectedRefuelingIds.value.includes(id)))
 
 const filteredVehicles = computed(() => {
   const query = search.value.toLowerCase()
@@ -305,7 +417,7 @@ const filteredVehicles = computed(() => {
 })
 const filteredRefuelings = computed(() => {
   const query = search.value.toLowerCase()
-  return refuelings.value.filter((item) => {
+  return sortedRefuelings.value.filter((item) => {
     const vehicle = vehicleById(item.vehicle)
     const station = stationById(item.gas_station)
     return [vehicle?.name, station?.name, station?.company, item.fuel_type, item.date].some((value) => value?.toLowerCase().includes(query))
@@ -380,6 +492,32 @@ function transactionSortValue(item: Transaction, key: TransactionSortKey) {
   return item.description || ''
 }
 
+function refuelingSortValue(item: Refueling, key: RefuelingColumnKey) {
+  if (key === 'date') return new Date(`${item.date}T00:00:00`).getTime()
+  if (key === 'vehicle') return vehicleById(item.vehicle)?.name || ''
+  if (key === 'station_fuel') return `${stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || ''} ${item.fuel_type || ''}`
+  if (key === 'mileage') return Number(item.mileage || 0)
+  if (key === 'fuel_quantity') return Number(item.fuel_quantity || 0)
+  if (key === 'is_full_tank') return item.is_full_tank ? 1 : 0
+  return Number(item.effective_cost || item.total_cost || 0)
+}
+
+function toggleRefuelingSort(key: RefuelingColumnKey) {
+  if (refuelingSort.key !== key) {
+    refuelingSort.key = key
+    refuelingSort.direction = 'asc'
+    return
+  }
+
+  if (refuelingSort.direction === 'asc') {
+    refuelingSort.direction = 'desc'
+    return
+  }
+
+  refuelingSort.key = null
+  refuelingSort.direction = null
+}
+
 function toggleTransactionSort(key: TransactionSortKey) {
   if (transactionSort.key !== key) {
     transactionSort.key = key
@@ -430,8 +568,10 @@ async function loadData() {
     ])
     vehicles.value = listResult(vehicleData)
     refuelings.value = listResult(refuelingData)
+    selectedRefuelingIds.value = selectedRefuelingIds.value.filter((id) => refuelings.value.some((item) => item.id === id))
     stations.value = listResult(stationData)
     transactions.value = listResult(transactionData)
+    selectedTransactionIds.value = selectedTransactionIds.value.filter((id) => transactions.value.some((item) => item.id === id))
     bankLabels.value = listResult(bankLabelData)
     categories.value = listResult(categoryData)
     sections.value = listResult(sectionData).filter((section) => section.is_active)
@@ -693,6 +833,123 @@ function cancelEditTransaction() {
   resetTransactionEditForm()
 }
 
+function isTransactionSelected(id: number) {
+  return selectedTransactionIds.value.includes(id)
+}
+
+function toggleTransactionSelection(id: number, checked: boolean) {
+  selectedTransactionIds.value = checked
+    ? Array.from(new Set([...selectedTransactionIds.value, id]))
+    : selectedTransactionIds.value.filter((selectedId) => selectedId !== id)
+}
+
+function toggleAllVisibleTransactions(checked: boolean) {
+  if (checked) {
+    selectedTransactionIds.value = Array.from(new Set([...selectedTransactionIds.value, ...visibleTransactionIds.value]))
+    return
+  }
+
+  selectedTransactionIds.value = selectedTransactionIds.value.filter((id) => !visibleTransactionIds.value.includes(id))
+}
+
+function clearTransactionSelection() {
+  selectedTransactionIds.value = []
+  bulkCategoryValue.value = ''
+  bulkSectionValue.value = ''
+}
+
+function bulkValue(rawValue: string) {
+  return rawValue === '__clear__' ? null : Number(rawValue)
+}
+
+async function applyBulkTransactionCategory() {
+  if (!selectedTransactionIds.value.length || !bulkCategoryValue.value) return
+  await submit(async () => {
+    await Promise.all(selectedTransactionIds.value.map((id) => api<Transaction>(`/transactions/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category: bulkValue(bulkCategoryValue.value) }),
+    })))
+    clearTransactionSelection()
+    await loadData()
+  }, { closeAfter: false })
+}
+
+async function applyBulkTransactionSection() {
+  if (!selectedTransactionIds.value.length || !bulkSectionValue.value) return
+  await submit(async () => {
+    await Promise.all(selectedTransactionIds.value.map((id) => api<Transaction>(`/transactions/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ section: bulkValue(bulkSectionValue.value) }),
+    })))
+    clearTransactionSelection()
+    await loadData()
+  }, { closeAfter: false })
+}
+
+function requestBulkTransactionDelete() {
+  if (!selectedTransactionIds.value.length) return
+  error.value = ''
+  pendingDelete.value = { path: 'bulk-transactions', id: 0, label: `${selectedTransactionIds.value.length} операций` }
+  modal.value = 'delete'
+}
+
+function isRefuelingSelected(id: number) {
+  return selectedRefuelingIds.value.includes(id)
+}
+
+function toggleRefuelingSelection(id: number, checked: boolean) {
+  selectedRefuelingIds.value = checked
+    ? Array.from(new Set([...selectedRefuelingIds.value, id]))
+    : selectedRefuelingIds.value.filter((selectedId) => selectedId !== id)
+}
+
+function toggleAllVisibleRefuelings(checked: boolean) {
+  if (checked) {
+    selectedRefuelingIds.value = Array.from(new Set([...selectedRefuelingIds.value, ...visibleRefuelingIds.value]))
+    return
+  }
+
+  selectedRefuelingIds.value = selectedRefuelingIds.value.filter((id) => !visibleRefuelingIds.value.includes(id))
+}
+
+function clearRefuelingSelection() {
+  selectedRefuelingIds.value = []
+  bulkRefuelingVehicleValue.value = ''
+  bulkRefuelingStationValue.value = ''
+}
+
+async function applyBulkRefuelingVehicle() {
+  if (!selectedRefuelingIds.value.length || !bulkRefuelingVehicleValue.value) return
+  await submit(async () => {
+    await Promise.all(selectedRefuelingIds.value.map((id) => api<Refueling>(`/refuelings/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ vehicle: Number(bulkRefuelingVehicleValue.value) }),
+    })))
+    clearRefuelingSelection()
+    await loadData()
+  }, { closeAfter: false })
+}
+
+async function applyBulkRefuelingStation() {
+  if (!selectedRefuelingIds.value.length || !bulkRefuelingStationValue.value) return
+  await submit(async () => {
+    const gasStation = bulkRefuelingStationValue.value === '__clear__' ? null : Number(bulkRefuelingStationValue.value)
+    await Promise.all(selectedRefuelingIds.value.map((id) => api<Refueling>(`/refuelings/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ gas_station: gasStation }),
+    })))
+    clearRefuelingSelection()
+    await loadData()
+  }, { closeAfter: false })
+}
+
+function requestBulkRefuelingDelete() {
+  if (!selectedRefuelingIds.value.length) return
+  error.value = ''
+  pendingDelete.value = { path: 'bulk-refuelings', id: 0, label: `${selectedRefuelingIds.value.length} заправок` }
+  modal.value = 'delete'
+}
+
 async function createTransaction() {
   await submit(async () => {
     const payload = {
@@ -745,7 +1002,15 @@ async function confirmRemove() {
   error.value = ''
   const target = pendingDelete.value
   try {
-    await api(`${target.path}${target.id}/`, { method: 'DELETE' })
+    if (target.path === 'bulk-transactions') {
+      await Promise.all(selectedTransactionIds.value.map((id) => api(`/transactions/${id}/`, { method: 'DELETE' })))
+      clearTransactionSelection()
+    } else if (target.path === 'bulk-refuelings') {
+      await Promise.all(selectedRefuelingIds.value.map((id) => api(`/refuelings/${id}/`, { method: 'DELETE' })))
+      clearRefuelingSelection()
+    } else {
+      await api(`${target.path}${target.id}/`, { method: 'DELETE' })
+    }
     closeModal()
     await loadData()
   } catch (requestError) {
@@ -762,6 +1027,7 @@ function logout() {
   refuelings.value = []
   stations.value = []
   transactions.value = []
+  clearTransactionSelection()
   bankLabels.value = []
   categories.value = []
   sections.value = []
@@ -844,8 +1110,10 @@ onMounted(() => {
         <button
           v-for="item in navItems"
           :key="item.id"
-          :class="{ active: activeView === item.id }"
-          @click="selectView(item.id)"
+          :class="{ active: activeView === item.id, disabled: item.disabled }"
+          :disabled="item.disabled"
+          :title="item.disabled ? 'В разработке' : item.label"
+          @click="!item.disabled && selectView(item.id as View)"
         >
           <component :is="item.icon" :size="19" />
           <span>{{ item.label }}</span>
@@ -905,17 +1173,38 @@ onMounted(() => {
                     <label><input v-model="dashboardVisibility.addCategory" type="checkbox"><span>Добавить категории</span></label>
                     <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
                     <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>Прикрепить файл</span></label>
+                    <div class="visibility-divider"></div>
+                    <strong class="visibility-title">Столбцы</strong>
+                    <label v-for="columnKey in transactionColumnOrder" :key="`visibility-${columnKey}`" :class="{ disabled: !canToggleTransactionColumn(columnKey) }"><input type="checkbox" :checked="transactionColumnVisibility[columnKey]" :disabled="!canToggleTransactionColumn(columnKey)" @change="toggleTransactionColumn(columnKey, ($event.target as HTMLInputElement).checked)"><span>{{ transactionColumnLabels[columnKey] }}</span></label>
                   </div>
                 </div>
               </div>
+            </div>
+            <div v-if="selectedTransactionCount" class="bulk-actions">
+              <strong>{{ selectedTransactionCount }} выбрано</strong>
+              <select v-model="bulkCategoryValue">
+                <option value="">Категория</option>
+                <option value="__clear__">Без категории</option>
+                <option v-for="category in categories" :key="category.id" :value="String(category.id)">{{ category.name }}</option>
+              </select>
+              <button class="secondary-button" type="button" :disabled="saving || !bulkCategoryValue" @click="applyBulkTransactionCategory">Проставить категорию</button>
+              <select v-model="bulkSectionValue">
+                <option value="">Раздел</option>
+                <option value="__clear__">Без раздела</option>
+                <option v-for="section in sections" :key="section.id" :value="String(section.id)">{{ section.name }}</option>
+              </select>
+              <button class="secondary-button" type="button" :disabled="saving || !bulkSectionValue" @click="applyBulkTransactionSection">Проставить раздел</button>
+              <button class="danger-button" type="button" :disabled="saving" @click="requestBulkTransactionDelete"><Trash2 :size="17" />Удалить</button>
+              <button class="text-button" type="button" :disabled="saving" @click="clearTransactionSelection">Сбросить</button>
             </div>
             <div v-if="transactions.length || addingTransaction" class="table-panel transaction-table">
               <div class="table-scroll">
                 <table>
                   <thead>
                     <tr>
+                      <th class="selection-column"><input type="checkbox" :checked="allVisibleTransactionsSelected" :disabled="!visibleTransactionIds.length" title="Выбрать все видимые" @change="toggleAllVisibleTransactions(($event.target as HTMLInputElement).checked)"></th>
                       <th
-                        v-for="columnKey in transactionColumnOrder"
+                        v-for="columnKey in visibleTransactionColumns"
                         :key="columnKey"
                         class="draggable-column"
                         :class="{ dragging: draggedTransactionColumn === columnKey }"
@@ -936,7 +1225,8 @@ onMounted(() => {
                   </thead>
                   <tbody>
                     <tr v-if="addingTransaction" class="transaction-edit-row transaction-create-row">
-                      <template v-for="columnKey in transactionColumnOrder" :key="`create-${columnKey}`">
+                      <td class="selection-column"></td>
+                      <template v-for="columnKey in visibleTransactionColumns" :key="`create-${columnKey}`">
                         <td v-if="columnKey === 'date'"><input v-model="transactionForm.date" required type="date"></td>
                         <td v-else-if="columnKey === 'transaction_type'"><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
                         <td v-else-if="columnKey === 'section'"><select v-model.number="transactionForm.section"><option :value="null">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
@@ -953,8 +1243,9 @@ onMounted(() => {
                       </td>
                     </tr>
                     <template v-for="item in visibleTransactions" :key="item.id">
-                      <tr v-if="editingTransactionId !== item.id" class="transaction-display-row">
-                        <template v-for="columnKey in transactionColumnOrder" :key="`display-${item.id}-${columnKey}`">
+                      <tr v-if="editingTransactionId !== item.id" class="transaction-display-row" :class="{ selected: isTransactionSelected(item.id) }">
+                        <td class="selection-column"><input type="checkbox" :checked="isTransactionSelected(item.id)" title="Выбрать операцию" @change="toggleTransactionSelection(item.id, ($event.target as HTMLInputElement).checked)"></td>
+                        <template v-for="columnKey in visibleTransactionColumns" :key="`display-${item.id}-${columnKey}`">
                           <td v-if="columnKey === 'date'"><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
                           <td v-else-if="columnKey === 'transaction_type'"><span class="transaction-type" :class="item.transaction_type">{{ transactionTypeLabels[item.transaction_type] }}</span></td>
                           <td v-else-if="columnKey === 'section'">{{ sectionName(item.section) }}</td>
@@ -971,7 +1262,8 @@ onMounted(() => {
                         </td>
                       </tr>
                       <tr v-else class="transaction-edit-row">
-                        <template v-for="columnKey in transactionColumnOrder" :key="`edit-${item.id}-${columnKey}`">
+                        <td class="selection-column"><input type="checkbox" :checked="isTransactionSelected(item.id)" title="Выбрать операцию" @change="toggleTransactionSelection(item.id, ($event.target as HTMLInputElement).checked)"></td>
+                        <template v-for="columnKey in visibleTransactionColumns" :key="`edit-${item.id}-${columnKey}`">
                           <td v-if="columnKey === 'date'"><input v-model="transactionEditForm.date" required type="date"></td>
                           <td v-else-if="columnKey === 'transaction_type'"><select v-model="transactionEditForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
                           <td v-else-if="columnKey === 'section'"><select v-model.number="transactionEditForm.section"><option :value="null">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
@@ -1066,24 +1358,58 @@ onMounted(() => {
                     <label><input v-model="refuelingVisibility.summary" type="checkbox"><span>Виджеты</span></label>
                     <label><input v-model="refuelingVisibility.vehicles" type="checkbox"><span>Транспорт</span></label>
                     <label><input v-model="refuelingVisibility.stations" type="checkbox"><span>АЗС</span></label>
+                    <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
+                    <div class="visibility-divider"></div>
+                    <strong class="visibility-title">Столбцы</strong>
+                    <label v-for="columnKey in refuelingColumnOrder" :key="`refueling-visibility-${columnKey}`" :class="{ disabled: !canToggleRefuelingColumn(columnKey) }"><input type="checkbox" :checked="refuelingColumnVisibility[columnKey]" :disabled="!canToggleRefuelingColumn(columnKey)" @change="toggleRefuelingColumn(columnKey, ($event.target as HTMLInputElement).checked)"><span>{{ refuelingColumnLabels[columnKey] }}</span></label>
                   </div>
                 </div>
               </div>
             </div>
 
+            <div v-if="selectedRefuelingCount" class="bulk-actions">
+              <strong>{{ selectedRefuelingCount }} выбрано</strong>
+              <select v-model="bulkRefuelingVehicleValue">
+                <option value="">Транспорт</option>
+                <option v-for="vehicle in vehicles" :key="vehicle.id" :value="String(vehicle.id)">{{ vehicle.name }}</option>
+              </select>
+              <button class="secondary-button" type="button" :disabled="saving || !bulkRefuelingVehicleValue" @click="applyBulkRefuelingVehicle">Поменять транспорт</button>
+              <select v-model="bulkRefuelingStationValue">
+                <option value="">АЗС</option>
+                <option value="__clear__">Без АЗС</option>
+                <option v-for="station in stations" :key="station.id" :value="String(station.id)">{{ station.company || station.name }}</option>
+              </select>
+              <button class="secondary-button" type="button" :disabled="saving || !bulkRefuelingStationValue" @click="applyBulkRefuelingStation">Поменять АЗС</button>
+              <button class="danger-button" type="button" :disabled="saving" @click="requestBulkRefuelingDelete"><Trash2 :size="17" />Удалить</button>
+              <button class="text-button" type="button" :disabled="saving" @click="clearRefuelingSelection">Сбросить</button>
+            </div>
             <div class="table-panel refueling-table">
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Дата</th><th>Транспорт</th><th>АЗС / топливо</th><th>Пробег</th><th>Объем</th><th>Стоимость</th><th></th></tr></thead>
+                  <thead><tr><th class="selection-column"><input type="checkbox" :checked="allVisibleRefuelingsSelected" :disabled="!visibleRefuelingIds.length" title="Выбрать все видимые" @change="toggleAllVisibleRefuelings(($event.target as HTMLInputElement).checked)"></th><th
+                    v-for="columnKey in visibleRefuelingColumns"
+                    :key="columnKey"
+                    class="draggable-column"
+                    :class="{ dragging: draggedRefuelingColumn === columnKey }"
+                    draggable="true"
+                    @dragstart="startRefuelingColumnDrag(columnKey)"
+                    @dragover.prevent
+                    @drop.prevent="dropRefuelingColumn(columnKey)"
+                    @dragend="finishRefuelingColumnDrag"
+                  ><button class="sort-header" :class="{ active: refuelingSort.key === columnKey }" type="button" @click="toggleRefuelingSort(columnKey)"><span>{{ refuelingColumnLabels[columnKey] }}</span><ChevronUp v-if="refuelingSort.key === columnKey && refuelingSort.direction === 'asc'" :size="14" /><ChevronDown v-else-if="refuelingSort.key === columnKey && refuelingSort.direction === 'desc'" :size="14" /></button></th><th></th></tr></thead>
                   <tbody>
-                    <tr v-for="item in filteredRefuelings" :key="item.id" :class="{ 'refueling-incomplete-row': !item.is_complete }">
-                      <td><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
-                      <td><strong>{{ vehicleById(item.vehicle)?.name || '—' }}</strong><small v-if="!item.is_complete">Нужно дополнить</small></td>
-                      <td><strong>{{ stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || 'Не указана' }}</strong><small>{{ item.fuel_type || '—' }} · {{ optionalCurrency(item.price_per_liter) }}/л</small></td>
-                      <td>{{ optionalNumber(item.mileage, ' км') }}</td>
-                      <td>{{ optionalNumber(item.fuel_quantity, ' л', 2) }}</td>
-                      <td><strong>{{ optionalCurrency(item.effective_cost || item.total_cost) }}</strong></td>
-                      <td><div class="transaction-actions visible"><button class="icon-button" title="Редактировать заправку" @click="startEditRefueling(item)"><Pencil :size="16" /></button><button class="icon-button danger" title="Удалить заправку" @click="remove('/refuelings/', item.id, `заправку от ${formatDate(item.date)}`)"><Trash2 :size="17" /></button></div></td>
+                    <tr v-for="item in filteredRefuelings" :key="item.id" class="refueling-display-row" :class="{ 'refueling-incomplete-row': !item.is_complete, selected: isRefuelingSelected(item.id) }">
+                      <td class="selection-column"><input type="checkbox" :checked="isRefuelingSelected(item.id)" title="Выбрать заправку" @change="toggleRefuelingSelection(item.id, ($event.target as HTMLInputElement).checked)"></td>
+                      <template v-for="columnKey in visibleRefuelingColumns" :key="`refueling-${item.id}-${columnKey}`">
+                        <td v-if="columnKey === 'date'"><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
+                        <td v-else-if="columnKey === 'vehicle'"><strong>{{ vehicleById(item.vehicle)?.name || '—' }}</strong><small v-if="!item.is_complete">Нужно дополнить</small></td>
+                        <td v-else-if="columnKey === 'station_fuel'"><strong>{{ stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || 'Не указана' }}</strong><small>{{ item.fuel_type || '—' }} · {{ optionalCurrency(item.price_per_liter) }}/л</small></td>
+                        <td v-else-if="columnKey === 'mileage'">{{ optionalNumber(item.mileage, ' км') }}</td>
+                        <td v-else-if="columnKey === 'fuel_quantity'">{{ optionalNumber(item.fuel_quantity, ' л', 2) }}</td>
+                        <td v-else-if="columnKey === 'is_full_tank'"><span class="status" :class="{ inactive: !item.is_full_tank }"><i></i>{{ item.is_full_tank ? 'Да' : 'Нет' }}</span></td>
+                        <td v-else><strong>{{ optionalCurrency(item.effective_cost || item.total_cost) }}</strong></td>
+                      </template>
+                      <td><div class="transaction-actions"><button class="icon-button" title="Редактировать заправку" @click="startEditRefueling(item)"><Pencil :size="16" /></button><button class="icon-button danger" title="Удалить заправку" @click="remove('/refuelings/', item.id, `заправку от ${formatDate(item.date)}`)"><Trash2 :size="17" /></button></div></td>
                     </tr>
                   </tbody>
                 </table>
