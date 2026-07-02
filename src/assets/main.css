@@ -143,14 +143,14 @@ textarea { resize: vertical; }
 .finance-summary-item.saving strong, .transaction-amount.saving { color: #8a6517; }
 .finance-summary-item.balance strong { color: var(--ink); }
 .transaction-table { margin-top: 18px; }
-.transaction-table table { min-width: 980px; }
+.transaction-table table { min-width: 1120px; }
 .transaction-type { min-height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 999px; font-size: 11px; font-weight: 800; }
 .transaction-type.income { color: #176844; background: #e4f2ea; }
 .transaction-type.expense { color: #9b4d4d; background: #f7e7e7; }
 .transaction-type.saving { color: #8a6517; background: #fbf1d5; }
 .transaction-description { display: inline-block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .transaction-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
-.transaction-display-row:hover .transaction-actions, .transaction-actions.editing { opacity: 1; pointer-events: auto; }
+.transaction-display-row:hover .transaction-actions, .transaction-actions.editing, .transaction-actions.visible { opacity: 1; pointer-events: auto; }
 .transaction-edit-row { background: #fbfdfc; }
 .transaction-edit-row input, .transaction-edit-row select { min-width: 120px; padding: 8px 9px; font-size: 12px; }
 .transaction-edit-row td { vertical-align: middle; }
@@ -187,17 +187,31 @@ th { padding: 13px 16px; color: #77817d; background: #f7f9f8; border-bottom: 1px
 .sort-header { width: 100%; min-height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: flex-start; gap: 5px; color: inherit; background: transparent; border: 0; font-size: inherit; font-weight: 800; text-align: left; text-transform: inherit; }
 .sort-header:hover, .sort-header.active { color: var(--green); }
 .sort-header svg { flex: 0 0 auto; }
+.draggable-column { cursor: grab; user-select: none; }
+.draggable-column:active { cursor: grabbing; }
+.draggable-column.dragging { opacity: .55; background: #f3f7f5; }
+.draggable-column .sort-header { cursor: inherit; }
 td { padding: 15px 16px; border-bottom: 1px solid #edf0ef; font-size: 12px; }
 tbody tr:last-child td { border-bottom: 0; }
 td small { display: block; margin-top: 4px; color: var(--muted); }
 .date-cell { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
 td .icon-button { width: 32px; height: 32px; }
+.refueling-incomplete-row { color: #66716c; background: #f4f6f5; }
+.refueling-incomplete-row td { border-bottom-color: #e2e7e4; }
+.refueling-incomplete-row strong { color: #4f5b55; }
+.refueling-incomplete-row small { color: #8a948f; }
 .station-list { background: white; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .station-list article { min-height: 82px; padding: 15px 18px; display: grid; grid-template-columns: 42px minmax(180px, 1fr) minmax(220px, 1fr) 38px; align-items: center; gap: 15px; border-bottom: 1px solid #edf0ef; }
 .station-icon { width: 40px; height: 40px; display: grid; place-items: center; color: #8a6517; background: #fbf1d5; border-radius: 6px; }
 .station-address { color: var(--muted); font-size: 12px; }
 .add-row { width: 100%; min-height: 54px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; color: var(--green); background: #f9fbfa; font-weight: 800; font-size: 12px; }
 .refueling-management { margin-top: 24px; display: grid; gap: 16px; }
+.refueling-management.top-management { margin: 0 0 18px; }
+.refueling-panel { margin-top: 0; }
+.refueling-table { margin-top: 18px; }
+.management-grid.single { grid-template-columns: 1fr; }
+.compact-heading .secondary-button { min-height: 36px; }
+.finance-summary-item small { color: var(--muted); font-size: 11px; font-weight: 700; }
 .management-heading { min-height: auto; }
 .management-actions { display: flex; align-items: center; gap: 9px; }
 .management-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 18px; align-items: start; }
