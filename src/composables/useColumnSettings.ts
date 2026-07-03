@@ -1,11 +1,11 @@
-import { computed, reactive, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 
 export function useColumnSettings<T extends string>(initialOrder: T[], initialVisibility: Record<T, boolean>) {
   const columnOrder = shallowRef<T[]>([...initialOrder])
-  const columnVisibility = reactive<Record<T, boolean>>({ ...initialVisibility })
+  const columnVisibility = ref<Record<T, boolean>>({ ...initialVisibility })
   const draggedColumn = ref<T | null>(null)
 
-  const visibleColumns = computed(() => columnOrder.value.filter((key) => columnVisibility[key]))
+  const visibleColumns = computed(() => columnOrder.value.filter((key) => columnVisibility.value[key]))
 
   function startColumnDrag(key: T) {
     draggedColumn.value = key
@@ -30,12 +30,12 @@ export function useColumnSettings<T extends string>(initialOrder: T[], initialVi
   }
 
   function canToggleColumn(key: T) {
-    return columnVisibility[key] || visibleColumns.value.length > 1
+    return columnVisibility.value[key] || visibleColumns.value.length > 1
   }
 
   function toggleColumn(key: T, checked: boolean) {
     if (!checked && visibleColumns.value.length <= 1) return
-    columnVisibility[key] = checked
+    columnVisibility.value[key] = checked
   }
 
   return {

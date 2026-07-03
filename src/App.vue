@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import {
-  Check,
-  Lightbulb,
-  Menu,
-  RefreshCw,
-  Trash2,
-  X,
-} from '@lucide/vue'
+import { Check, RefreshCw, Trash2 } from '@lucide/vue'
 import { ApiError, hasToken, setToken } from '@/api'
 import AuthView from '@/components/auth/AuthView.vue'
 import AboutContent from '@/components/modals/AboutContent.vue'
@@ -17,8 +10,8 @@ import DeleteConfirmContent from '@/components/modals/DeleteConfirmContent.vue'
 import GasStationFormModal from '@/components/modals/GasStationFormModal.vue'
 import RefuelingFormModal from '@/components/modals/RefuelingFormModal.vue'
 import VehicleFormModal from '@/components/modals/VehicleFormModal.vue'
-import AppSidebar from '@/components/navigation/AppSidebar.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
 import { navItems } from '@/constants/navigation'
 import DashboardView from '@/views/DashboardView.vue'
 import RefuelingsView from '@/views/RefuelingsView.vue'
@@ -562,18 +555,20 @@ function selectCategoryForEdit(id: number | null) {
 }
 
 async function updateCategory() {
-  if (!selectedCategoryId.value) return
+  const categoryId = selectedCategoryId.value
+  if (!categoryId) return
   await submit(async () => {
-    const updated = await financeStore.updateCategory(selectedCategoryId.value, categoryEditForm)
+    const updated = await financeStore.updateCategory(categoryId, categoryEditForm)
     selectCategoryForEdit(updated.id)
     await loadData()
   }, { closeAfter: false })
 }
 
 async function updateBankLabel() {
-  if (!selectedBankLabelId.value) return
+  const bankLabelId = selectedBankLabelId.value
+  if (!bankLabelId) return
   await submit(async () => {
-    const updated = await financeStore.updateBankLabel(selectedBankLabelId.value, bankLabelEditForm)
+    const updated = await financeStore.updateBankLabel(bankLabelId, bankLabelEditForm)
     selectBankLabelForEdit(updated.id)
     await loadData()
   }, { closeAfter: false })
@@ -715,7 +710,7 @@ async function createTransaction() {
   await submit(async () => {
     const payload = {
       ...transactionPayload(transactionForm),
-      source: 'manual',
+      source: 'manual' as const,
     }
     await financeStore.createTransaction(payload)
     addingTransaction.value = false
@@ -799,159 +794,138 @@ onMounted(() => {
 
   <AuthView v-if="!authenticated" @authenticated="handleAuthenticated" />
 
-  <div v-else class="app-shell">
-    <AppSidebar
-      :active-view="activeView"
-      :open="mobileNavOpen"
-      @about="openModal('about')"
-      @close="mobileNavOpen = false"
-      @logout="logout"
-      @select="selectView"
+  <AppLayout
+    v-else
+    :active-view="activeView"
+    :dark-theme="isDarkTheme"
+    :error="error"
+    :loading="loading"
+    :mobile-nav-open="mobileNavOpen"
+    :title="viewTitle"
+    @about="openModal('about')"
+    @clear-error="error = ''"
+    @close-menu="mobileNavOpen = false"
+    @logout="logout"
+    @open-menu="mobileNavOpen = true"
+    @refresh="loadData"
+    @select-view="selectView"
+    @toggle-theme="toggleTheme"
+  >
+    <DashboardView
+      v-if="activeView === 'dashboard'"
+      :adding-transaction="addingTransaction"
+      :all-visible-transactions-selected="allVisibleTransactionsSelected"
+      :bank-labels="bankLabels"
+      :bulk-category-value="bulkCategoryValue"
+      :bulk-section-value="bulkSectionValue"
+      :can-toggle-transaction-column="canToggleTransactionColumn"
+      :categories="categories"
+      :dashboard-controls-open="dashboardControlsOpen"
+      :dashboard-visibility="dashboardVisibility"
+      :dragged-transaction-column="draggedTransactionColumn"
+      :editing-transaction-id="editingTransactionId"
+      :is-transaction-selected="isTransactionSelected"
+      :saving="saving"
+      :section-name="sectionName"
+      :sections="sections"
+      :selected-transaction-count="selectedTransactionCount"
+      :transaction-balance="transactionBalance"
+      :transaction-column-labels="transactionColumnLabels"
+      :transaction-column-order="transactionColumnOrder"
+      :transaction-column-visibility="transactionColumnVisibility"
+      :transaction-edit-form="transactionEditForm"
+      :transaction-expense="transactionExpense"
+      :transaction-form="transactionForm"
+      :transaction-income="transactionIncome"
+      :transaction-saving="transactionSaving"
+      :transaction-search="transactionSearch"
+      :transaction-sign="transactionSign"
+      :transaction-sort="transactionSort"
+      :transaction-title="transactionTitle"
+      :transaction-type-labels="transactionTypeLabels"
+      :transactions="transactions"
+      :visible-transaction-columns="visibleTransactionColumns"
+      :visible-transaction-ids="visibleTransactionIds"
+      :visible-transactions="visibleTransactions"
+      @apply-bulk-transaction-category="applyBulkTransactionCategory"
+      @apply-bulk-transaction-section="applyBulkTransactionSection"
+      @cancel-create-transaction="cancelCreateTransaction"
+      @cancel-edit-transaction="cancelEditTransaction"
+      @clear-transaction-selection="clearTransactionSelection"
+      @create-transaction="createTransaction"
+      @drop-transaction-column="dropTransactionColumn"
+      @finish-transaction-column-drag="finishTransactionColumnDrag"
+      @open-bank-label-modal="openModal('bankLabel')"
+      @open-category-modal="openModal('category')"
+      @remove-transaction="(id, label) => remove('transaction', id, label)"
+      @request-bulk-transaction-delete="requestBulkTransactionDelete"
+      @start-create-transaction="startCreateTransaction"
+      @start-edit-transaction="startEditTransaction"
+      @start-transaction-column-drag="startTransactionColumnDrag"
+      @toggle-all-visible-transactions="toggleAllVisibleTransactions"
+      @toggle-dashboard-controls="dashboardControlsOpen = !dashboardControlsOpen"
+      @toggle-transaction-column="toggleTransactionColumn"
+      @toggle-transaction-selection="toggleTransactionSelection"
+      @toggle-transaction-sort="toggleTransactionSort"
+      @update-bulk-category-value="bulkCategoryValue = $event"
+      @update-bulk-section-value="bulkSectionValue = $event"
+      @update-transaction="updateTransaction"
+      @update-transaction-search="transactionSearch = $event"
     />
 
-    <div class="workspace">
-      <header class="topbar">
-        <button class="icon-button menu-button" title="Открыть меню" @click="mobileNavOpen = true"><Menu :size="21" /></button>
-        <div>
-          <p class="eyebrow">Панель управления</p>
-          <h1>{{ viewTitle }}</h1>
-        </div>
-        <div class="topbar-actions">
-          <button class="icon-button" title="Обновить данные" :disabled="loading" @click="loadData">
-            <RefreshCw :class="{ spin: loading }" :size="19" />
-          </button>
-          <button
-            class="icon-button theme-toggle"
-            :class="{ active: isDarkTheme }"
-            :title="isDarkTheme ? 'Выключить темную тему' : 'Включить темную тему'"
-            type="button"
-            @click="toggleTheme"
-          >
-            <Lightbulb :size="20" />
-          </button>
-        </div>
-      </header>
-
-      <main class="content">
-        <div v-if="error" class="error-banner"><span>{{ error }}</span><button title="Закрыть" @click="error = ''"><X :size="18" /></button></div>
-
-        <DashboardView
-          v-if="activeView === 'dashboard'"
-          :adding-transaction="addingTransaction"
-          :all-visible-transactions-selected="allVisibleTransactionsSelected"
-          :bank-labels="bankLabels"
-          :bulk-category-value="bulkCategoryValue"
-          :bulk-section-value="bulkSectionValue"
-          :can-toggle-transaction-column="canToggleTransactionColumn"
-          :categories="categories"
-          :dashboard-controls-open="dashboardControlsOpen"
-          :dashboard-visibility="dashboardVisibility"
-          :dragged-transaction-column="draggedTransactionColumn"
-          :editing-transaction-id="editingTransactionId"
-          :is-transaction-selected="isTransactionSelected"
-          :saving="saving"
-          :section-name="sectionName"
-          :sections="sections"
-          :selected-transaction-count="selectedTransactionCount"
-          :transaction-balance="transactionBalance"
-          :transaction-column-labels="transactionColumnLabels"
-          :transaction-column-order="transactionColumnOrder"
-          :transaction-column-visibility="transactionColumnVisibility"
-          :transaction-edit-form="transactionEditForm"
-          :transaction-expense="transactionExpense"
-          :transaction-form="transactionForm"
-          :transaction-income="transactionIncome"
-          :transaction-saving="transactionSaving"
-          :transaction-search="transactionSearch"
-          :transaction-sign="transactionSign"
-          :transaction-sort="transactionSort"
-          :transaction-title="transactionTitle"
-          :transaction-type-labels="transactionTypeLabels"
-          :transactions="transactions"
-          :visible-transaction-columns="visibleTransactionColumns"
-          :visible-transaction-ids="visibleTransactionIds"
-          :visible-transactions="visibleTransactions"
-          @apply-bulk-transaction-category="applyBulkTransactionCategory"
-          @apply-bulk-transaction-section="applyBulkTransactionSection"
-          @cancel-create-transaction="cancelCreateTransaction"
-          @cancel-edit-transaction="cancelEditTransaction"
-          @clear-transaction-selection="clearTransactionSelection"
-          @create-transaction="createTransaction"
-          @drop-transaction-column="dropTransactionColumn"
-          @finish-transaction-column-drag="finishTransactionColumnDrag"
-          @open-bank-label-modal="openModal('bankLabel')"
-          @open-category-modal="openModal('category')"
-          @remove-transaction="(id, label) => remove('transaction', id, label)"
-          @request-bulk-transaction-delete="requestBulkTransactionDelete"
-          @start-create-transaction="startCreateTransaction"
-          @start-edit-transaction="startEditTransaction"
-          @start-transaction-column-drag="startTransactionColumnDrag"
-          @toggle-all-visible-transactions="toggleAllVisibleTransactions"
-          @toggle-dashboard-controls="dashboardControlsOpen = !dashboardControlsOpen"
-          @toggle-transaction-column="toggleTransactionColumn"
-          @toggle-transaction-selection="toggleTransactionSelection"
-          @toggle-transaction-sort="toggleTransactionSort"
-          @update-bulk-category-value="bulkCategoryValue = $event"
-          @update-bulk-section-value="bulkSectionValue = $event"
-          @update-transaction="updateTransaction"
-          @update-transaction-search="transactionSearch = $event"
-        />
-
-        <RefuelingsView
-          v-else
-          :all-visible-refuelings-selected="allVisibleRefuelingsSelected"
-          :bulk-refueling-station-value="bulkRefuelingStationValue"
-          :bulk-refueling-vehicle-value="bulkRefuelingVehicleValue"
-          :can-toggle-refueling-column="canToggleRefuelingColumn"
-          :dragged-refueling-column="draggedRefuelingColumn"
-          :filtered-refuelings="filteredRefuelings"
-          :filtered-stations="filteredStations"
-          :filtered-vehicles="filteredVehicles"
-          :is-refueling-selected="isRefuelingSelected"
-          :refueling-column-labels="refuelingColumnLabels"
-          :refueling-column-order="refuelingColumnOrder"
-          :refueling-column-visibility="refuelingColumnVisibility"
-          :refueling-controls-open="refuelingControlsOpen"
-          :refueling-sort="refuelingSort"
-          :refueling-total-cost="refuelingTotalCost"
-          :refueling-total-fuel="refuelingTotalFuel"
-          :refueling-visibility="refuelingVisibility"
-          :refuelings="refuelings"
-          :saving="saving"
-          :search="search"
-          :selected-refueling-count="selectedRefuelingCount"
-          :station-by-id="stationById"
-          :stations="stations"
-          :vehicle-by-id="vehicleById"
-          :vehicles="vehicles"
-          :visible-refueling-columns="visibleRefuelingColumns"
-          :visible-refueling-ids="visibleRefuelingIds"
-          @apply-bulk-refueling-station="applyBulkRefuelingStation"
-          @apply-bulk-refueling-vehicle="applyBulkRefuelingVehicle"
-          @clear-refueling-selection="clearRefuelingSelection"
-          @drop-refueling-column="dropRefuelingColumn"
-          @finish-refueling-column-drag="finishRefuelingColumnDrag"
-          @open-refueling-modal="openModal('refueling')"
-          @open-station-modal="openModal('station')"
-          @open-vehicle-modal="openModal('vehicle')"
-          @remove-gas-station="(id, label) => remove('gasStation', id, label)"
-          @remove-refueling="(id, label) => remove('refueling', id, label)"
-          @remove-vehicle="(id, label) => remove('vehicle', id, label)"
-          @request-bulk-refueling-delete="requestBulkRefuelingDelete"
-          @start-edit-refueling="startEditRefueling"
-          @start-refueling-column-drag="startRefuelingColumnDrag"
-          @toggle-all-visible-refuelings="toggleAllVisibleRefuelings"
-          @toggle-refueling-column="toggleRefuelingColumn"
-          @toggle-refueling-controls="refuelingControlsOpen = !refuelingControlsOpen"
-          @toggle-refueling-selection="toggleRefuelingSelection"
-          @toggle-refueling-sort="toggleRefuelingSort"
-          @update-bulk-refueling-station-value="bulkRefuelingStationValue = $event"
-          @update-bulk-refueling-vehicle-value="bulkRefuelingVehicleValue = $event"
-          @update-search="search = $event"
-        />
-      </main>
-    </div>
-  </div>
+    <RefuelingsView
+      v-else
+      :all-visible-refuelings-selected="allVisibleRefuelingsSelected"
+      :bulk-refueling-station-value="bulkRefuelingStationValue"
+      :bulk-refueling-vehicle-value="bulkRefuelingVehicleValue"
+      :can-toggle-refueling-column="canToggleRefuelingColumn"
+      :dragged-refueling-column="draggedRefuelingColumn"
+      :filtered-refuelings="filteredRefuelings"
+      :filtered-stations="filteredStations"
+      :filtered-vehicles="filteredVehicles"
+      :is-refueling-selected="isRefuelingSelected"
+      :refueling-column-labels="refuelingColumnLabels"
+      :refueling-column-order="refuelingColumnOrder"
+      :refueling-column-visibility="refuelingColumnVisibility"
+      :refueling-controls-open="refuelingControlsOpen"
+      :refueling-sort="refuelingSort"
+      :refueling-total-cost="refuelingTotalCost"
+      :refueling-total-fuel="refuelingTotalFuel"
+      :refueling-visibility="refuelingVisibility"
+      :refuelings="refuelings"
+      :saving="saving"
+      :search="search"
+      :selected-refueling-count="selectedRefuelingCount"
+      :station-by-id="stationById"
+      :stations="stations"
+      :vehicle-by-id="vehicleById"
+      :vehicles="vehicles"
+      :visible-refueling-columns="visibleRefuelingColumns"
+      :visible-refueling-ids="visibleRefuelingIds"
+      @apply-bulk-refueling-station="applyBulkRefuelingStation"
+      @apply-bulk-refueling-vehicle="applyBulkRefuelingVehicle"
+      @clear-refueling-selection="clearRefuelingSelection"
+      @drop-refueling-column="dropRefuelingColumn"
+      @finish-refueling-column-drag="finishRefuelingColumnDrag"
+      @open-refueling-modal="openModal('refueling')"
+      @open-station-modal="openModal('station')"
+      @open-vehicle-modal="openModal('vehicle')"
+      @remove-gas-station="(id, label) => remove('gasStation', id, label)"
+      @remove-refueling="(id, label) => remove('refueling', id, label)"
+      @remove-vehicle="(id, label) => remove('vehicle', id, label)"
+      @request-bulk-refueling-delete="requestBulkRefuelingDelete"
+      @start-edit-refueling="startEditRefueling"
+      @start-refueling-column-drag="startRefuelingColumnDrag"
+      @toggle-all-visible-refuelings="toggleAllVisibleRefuelings"
+      @toggle-refueling-column="toggleRefuelingColumn"
+      @toggle-refueling-controls="refuelingControlsOpen = !refuelingControlsOpen"
+      @toggle-refueling-selection="toggleRefuelingSelection"
+      @toggle-refueling-sort="toggleRefuelingSort"
+      @update-bulk-refueling-station-value="bulkRefuelingStationValue = $event"
+      @update-bulk-refueling-vehicle-value="bulkRefuelingVehicleValue = $event"
+      @update-search="search = $event"
+    />
+  </AppLayout>
 
   <BaseModal
     v-if="modal"
