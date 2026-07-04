@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Eye, Plus, Search, WalletCards } from '@lucide/vue'
 import { computed } from 'vue'
+import FinanceSummary from '@/components/finance/FinanceSummary.vue'
 import TransactionBulkActions from '@/components/finance/TransactionBulkActions.vue'
+import TransactionColumnSettings from '@/components/finance/TransactionColumnSettings.vue'
 import TransactionTable from '@/components/finance/TransactionTable.vue'
-import { useFormatters } from '@/composables/useFormatters'
 import type { BankLabel, Category, Section, Transaction, TransactionDraft, TransactionType } from '@/types/finance'
 import type { SortDirection } from '@/types/common'
 import type { TransactionSortKey } from '@/types/table'
@@ -77,13 +78,6 @@ const emit = defineEmits<{
   updateTransactionSearch: [value: string]
 }>()
 
-const {
-  currency,
-} = useFormatters()
-
-function updateDashboardVisibility(field: keyof Props['dashboardVisibility'], checked: boolean) {
-  emit('updateDashboardVisibility', { ...props.dashboardVisibility, [field]: checked })
-}
 
 const transactionSearchModel = computed({
   get: () => props.transactionSearch,
@@ -93,12 +87,13 @@ const transactionSearchModel = computed({
 </script>
 
 <template>
-  <div v-if="dashboardVisibility.summary" class="finance-summary">
-    <div class="finance-summary-item income"><span>Доходы</span><strong>{{ currency(transactionIncome) }}</strong></div>
-    <div class="finance-summary-item expense"><span>Траты</span><strong>{{ currency(transactionExpense) }}</strong></div>
-    <div class="finance-summary-item saving"><span>Накопления</span><strong>{{ currency(transactionSaving) }}</strong></div>
-    <div class="finance-summary-item balance"><span>Итог</span><strong>{{ currency(transactionBalance) }}</strong></div>
-  </div>
+  <FinanceSummary
+    v-if="dashboardVisibility.summary"
+    :balance="transactionBalance"
+    :expense="transactionExpense"
+    :income="transactionIncome"
+    :saving="transactionSaving"
+  />
   <section class="finance-panel panel">
     <div class="section-heading">
       <div class="finance-heading-main"><h2>Финансовые операции</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="transactionSearchModel" placeholder="Поиск по операциям, банку и описанию"></div></div>
@@ -108,16 +103,16 @@ const transactionSearchModel = computed({
         <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" @click="emit('openCategoryModal')">Добавить категории</button>
         <div class="visibility-menu">
           <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="emit('toggleDashboardControls')"><Eye :size="18" /></button>
-          <div v-if="dashboardControlsOpen" class="visibility-dropdown">
-            <label><input :checked="dashboardVisibility.summary" type="checkbox" @change="updateDashboardVisibility('summary', ($event.target as HTMLInputElement).checked)"><span>Виджеты</span></label>
-            <label><input :checked="dashboardVisibility.addBank" type="checkbox" @change="updateDashboardVisibility('addBank', ($event.target as HTMLInputElement).checked)"><span>Добавить банк</span></label>
-            <label><input :checked="dashboardVisibility.addCategory" type="checkbox" @change="updateDashboardVisibility('addCategory', ($event.target as HTMLInputElement).checked)"><span>Добавить категории</span></label>
-            <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
-            <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>Прикрепить файл</span></label>
-            <div class="visibility-divider"></div>
-            <strong class="visibility-title">Столбцы</strong>
-            <label v-for="columnKey in transactionColumnOrder" :key="`visibility-${columnKey}`" :class="{ disabled: !canToggleTransactionColumn(columnKey) }"><input type="checkbox" :checked="transactionColumnVisibility[columnKey]" :disabled="!canToggleTransactionColumn(columnKey)" @change="emit('toggleTransactionColumn', columnKey, ($event.target as HTMLInputElement).checked)"><span>{{ transactionColumnLabels[columnKey] }}</span></label>
-          </div>
+          <TransactionColumnSettings
+            v-if="dashboardControlsOpen"
+            :can-toggle-column="canToggleTransactionColumn"
+            :column-labels="transactionColumnLabels"
+            :column-order="transactionColumnOrder"
+            :column-visibility="transactionColumnVisibility"
+            :dashboard-visibility="dashboardVisibility"
+            @toggle-column="(key, checked) => emit('toggleTransactionColumn', key, checked)"
+            @update-dashboard-visibility="emit('updateDashboardVisibility', $event)"
+          />
         </div>
       </div>
     </div>
