@@ -11,24 +11,22 @@ export class ApiError extends Error {
   }
 }
 
-function getToken() {
-  return localStorage.getItem('brooks-token')
+interface AuthClientConfig {
+  getToken: () => string | null
+  onUnauthorized: () => void
 }
 
-export function setToken(token: string | null) {
-  if (token) {
-    localStorage.setItem('brooks-token', token)
-  } else {
-    localStorage.removeItem('brooks-token')
-  }
+let authClient: AuthClientConfig = {
+  getToken: () => null,
+  onUnauthorized: () => {},
 }
 
-export function hasToken() {
-  return Boolean(getToken())
+export function configureAuthClient(config: AuthClientConfig) {
+  authClient = config
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken()
+  const token = authClient.getToken()
   const headers = new Headers(options.headers)
 
   if (options.body) headers.set('Content-Type', 'application/json')
@@ -38,7 +36,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const data = response.status === 204 ? null : await response.json().catch(() => null)
 
   if (!response.ok) {
-    if (response.status === 401) setToken(null)
+    if (response.status === 401) authClient.onUnauthorized()
     const details = data && typeof data === 'object' ? data as ApiErrorPayload : {}
     const firstValue = Object.values(details)[0]
     const message = Array.isArray(firstValue)

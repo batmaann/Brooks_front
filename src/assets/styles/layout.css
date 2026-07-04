@@ -1,0 +1,36 @@
+.auth-layout { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, 1.05fr) minmax(430px, .95fr); background: var(--surface); }
+.auth-brand { padding: 48px clamp(40px, 7vw, 110px); display: flex; flex-direction: column; justify-content: space-between; color: white; background: #153f31; position: relative; overflow: hidden; }
+.auth-brand::after { content: ''; position: absolute; inset: auto -12% -20% 22%; height: 52%; background: rgba(255,255,255,.055); transform: skewY(-8deg); }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 228px 1fr; }
+.sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 228px; padding: 22px 14px; display: flex; flex-direction: column; color: #dfe9e5; background: #153f31; }
+.sidebar-brand { height: 44px; display: flex; align-items: center; gap: 11px; padding: 0 8px; }
+.sidebar-brand strong { font-family: 'Anton', 'Manrope', Arial, sans-serif; font-size: 22px; font-weight: 400; letter-spacing: 0; color: white; }
+.sidebar nav { display: grid; gap: 4px; margin-top: 42px; }
+.sidebar nav button, .sidebar-footer button { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 6px; padding: 0 13px; color: #b8cbc3; background: transparent; font-size: 13px; font-weight: 700; text-align: left; }
+.sidebar nav button:hover, .sidebar-footer button:hover { color: white; background: rgba(255,255,255,.07); }
+.sidebar nav button.active { color: #173a2f; background: #d5ed52; }
+.sidebar nav button.disabled { color: rgba(184,203,195,.48); cursor: not-allowed; opacity: 1; }
+.sidebar nav button.disabled:hover { color: #d5ed52; background: rgba(213,237,82,.08); }
+.sidebar-footer { margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12); }
+.sidebar-footer .about-link { min-height: 28px; margin-top: 6px; padding: 0 13px; color: rgba(223,233,229,.68); font-size: 11px; font-weight: 700; }
+.sidebar-footer .about-link:hover { color: white; background: transparent; }
+.workspace { grid-column: 2; min-width: 0; }
+.topbar { min-height: 86px; padding: 16px clamp(22px, 3vw, 44px); display: flex; align-items: center; gap: 18px; background: white; border-bottom: 1px solid var(--line); }
+.topbar h1 { margin-top: 3px; font-size: 24px; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+.action-tooltip { display: inline-flex; }
+.icon-button { width: 38px; height: 38px; padding: 0; display: inline-grid; place-items: center; flex: 0 0 auto; color: #54605b; background: white; border: 1px solid #d9e0dd; border-radius: 6px; }
+.icon-button:hover { color: var(--green); border-color: #a9c7ba; background: #f7faf8; }
+.icon-button.danger { color: #8c5d5d; }
+.icon-button.danger:hover { color: var(--danger); border-color: #e1bcbc; background: #fff7f7; }
+.menu-button, .mobile-close { display: none; }
+.content { padding: 30px clamp(22px, 3vw, 44px) 50px; }
+
+.dashboard-grid { margin-top: 22px; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, .8fr); gap: 22px; }
+
+.refueling-management { margin-top: 24px; display: grid; gap: 16px; }
+.refueling-management.top-management { margin: 0 0 18px; }
+.refueling-panel { margin-top: 0; }
+.refueling-table { margin-top: 18px; }
+.management-grid.single { grid-template-columns: 1fr; }

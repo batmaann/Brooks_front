@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+h1, h2, p { margin: 0; }
+
+
+label { display: grid; gap: 8px; color: #46504c; font-size: 12px; font-weight: 700; }
+input, select, textarea { width: 100%; border: 1px solid #ccd5d1; border-radius: 6px; padding: 12px 13px; color: var(--ink); background: white; outline: none; transition: border-color .16s, box-shadow .16s; }
+input:focus, select:focus, textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(22,115,75,.1); }
+textarea { resize: vertical; }
+
+table { width: 100%; border-collapse: collapse; min-width: 880px; }
+th { padding: 13px 16px; color: #77817d; background: #f7f9f8; border-bottom: 1px solid var(--line); font-size: 10px; text-align: left; text-transform: uppercase; }
