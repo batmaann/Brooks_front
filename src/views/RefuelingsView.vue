@@ -63,6 +63,7 @@ const emit = defineEmits<{
   toggleRefuelingSort: [key: RefuelingColumnKey]
   updateBulkRefuelingStationValue: [value: string]
   updateBulkRefuelingVehicleValue: [value: string]
+  updateRefuelingVisibility: [visibility: { summary: boolean, vehicles: boolean, stations: boolean }]
   updateSearch: [value: string]
 }>()
 
@@ -71,6 +72,10 @@ const {
   number,
   optionalNumber,
 } = useFormatters()
+
+function updateRefuelingVisibility(field: keyof Props['refuelingVisibility'], checked: boolean) {
+  emit('updateRefuelingVisibility', { ...props.refuelingVisibility, [field]: checked })
+}
 
 const searchModel = computed({
   get: () => props.search,
@@ -146,9 +151,9 @@ const searchModel = computed({
         <div class="visibility-menu">
           <button class="icon-button" :class="{ active: refuelingControlsOpen }" title="Настроить заправки" type="button" @click="emit('toggleRefuelingControls')"><Eye :size="18" /></button>
           <div v-if="refuelingControlsOpen" class="visibility-dropdown">
-            <label><input v-model="refuelingVisibility.summary" type="checkbox"><span>Виджеты</span></label>
-            <label><input v-model="refuelingVisibility.vehicles" type="checkbox"><span>Транспорт</span></label>
-            <label><input v-model="refuelingVisibility.stations" type="checkbox"><span>АЗС</span></label>
+            <label><input :checked="refuelingVisibility.summary" type="checkbox" @change="updateRefuelingVisibility('summary', ($event.target as HTMLInputElement).checked)"><span>Виджеты</span></label>
+            <label><input :checked="refuelingVisibility.vehicles" type="checkbox" @change="updateRefuelingVisibility('vehicles', ($event.target as HTMLInputElement).checked)"><span>Транспорт</span></label>
+            <label><input :checked="refuelingVisibility.stations" type="checkbox" @change="updateRefuelingVisibility('stations', ($event.target as HTMLInputElement).checked)"><span>АЗС</span></label>
             <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
             <div class="visibility-divider"></div>
             <strong class="visibility-title">Столбцы</strong>

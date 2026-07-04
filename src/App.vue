@@ -936,9 +936,9 @@ onMounted(() => {
     :wide="modal === 'bankLabel' || modal === 'category'"
     @close="closeModal"
   >
-      <VehicleFormModal v-if="modal === 'vehicle'" :form="vehicleForm" @submit="createVehicle" />
-      <RefuelingFormModal v-if="modal === 'refueling'" :form="refuelingForm" :stations="stations" :vehicles="vehicles" @submit="saveRefueling" />
-      <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="createStation" />
+      <VehicleFormModal v-if="modal === 'vehicle'" :form="vehicleForm" @submit="createVehicle" @update:form="Object.assign(vehicleForm, $event)" />
+      <RefuelingFormModal v-if="modal === 'refueling'" :form="refuelingForm" :stations="stations" :vehicles="vehicles" @submit="saveRefueling" @update:form="Object.assign(refuelingForm, $event)" />
+      <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="createStation" @update:form="Object.assign(stationForm, $event)" />
       <BankLabelModal
         v-if="modal === 'bankLabel'"
         :bank-labels="bankLabels"
@@ -949,6 +949,8 @@ onMounted(() => {
         @create="createBankLabel"
         @select="selectBankLabelForEdit"
         @update="updateBankLabel"
+        @update:create-form="Object.assign(bankLabelForm, $event)"
+        @update:edit-form="Object.assign(bankLabelEditForm, $event)"
       />
       <CategoryModal
         v-if="modal === 'category'"
@@ -960,6 +962,8 @@ onMounted(() => {
         @create="createCategory"
         @select="selectCategoryForEdit"
         @update="updateCategory"
+        @update:create-form="Object.assign(categoryForm, $event)"
+        @update:edit-form="Object.assign(categoryEditForm, $event)"
       />
       <AboutContent v-if="modal === 'about'" />
       <DeleteConfirmContent v-if="modal === 'delete'" :label="pendingDelete?.label" />

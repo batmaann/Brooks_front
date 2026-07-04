@@ -29,7 +29,7 @@ interface Props {
   visibleColumns: TransactionSortKey[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   cancelCreate: []
@@ -44,12 +44,26 @@ const emit = defineEmits<{
   toggleSelection: [id: number, checked: boolean]
   toggleSort: [key: TransactionSortKey]
   update: [id: number]
+  'update:transactionForm': [form: TransactionDraft]
+  'update:transactionEditForm': [form: TransactionDraft]
 }>()
 
 const {
   currency,
   formatDate,
 } = useFormatters()
+
+function updateTransactionForm<K extends keyof TransactionDraft>(field: K, value: TransactionDraft[K]) {
+  emit('update:transactionForm', { ...props.transactionForm, [field]: value })
+}
+
+function updateTransactionEditForm<K extends keyof TransactionDraft>(field: K, value: TransactionDraft[K]) {
+  emit('update:transactionEditForm', { ...props.transactionEditForm, [field]: value })
+}
+
+function numberOrNull(value: string) {
+  return value === '' ? null : Number(value)
+}
 </script>
 
 <template>
@@ -83,13 +97,13 @@ const {
           <tr v-if="addingTransaction" class="transaction-edit-row transaction-create-row">
             <td class="selection-column"></td>
             <template v-for="columnKey in visibleColumns" :key="`create-${columnKey}`">
-              <td v-if="columnKey === 'date'"><input v-model="transactionForm.date" required type="date"></td>
-              <td v-else-if="columnKey === 'transaction_type'"><select v-model="transactionForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
-              <td v-else-if="columnKey === 'section'"><select v-model.number="transactionForm.section"><option :value="null">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
-              <td v-else-if="columnKey === 'category'"><select v-model.number="transactionForm.category"><option :value="null">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
-              <td v-else-if="columnKey === 'amount'"><input v-model.number="transactionForm.amount" required type="number" min="0.01" step="0.01"></td>
-              <td v-else-if="columnKey === 'bank_label'"><select v-model.number="transactionForm.bank_label"><option :value="null">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
-              <td v-else><input v-model.trim="transactionForm.description" placeholder="Описание"></td>
+              <td v-if="columnKey === 'date'"><input :value="transactionForm.date" required type="date" @input="updateTransactionForm('date', ($event.target as HTMLInputElement).value)"></td>
+              <td v-else-if="columnKey === 'transaction_type'"><select :value="transactionForm.transaction_type" @change="updateTransactionForm('transaction_type', ($event.target as HTMLSelectElement).value as TransactionType)"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
+              <td v-else-if="columnKey === 'section'"><select :value="transactionForm.section ?? ''" @change="updateTransactionForm('section', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
+              <td v-else-if="columnKey === 'category'"><select :value="transactionForm.category ?? ''" @change="updateTransactionForm('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
+              <td v-else-if="columnKey === 'amount'"><input :value="transactionForm.amount" required type="number" min="0.01" step="0.01" @input="updateTransactionForm('amount', Number(($event.target as HTMLInputElement).value))"></td>
+              <td v-else-if="columnKey === 'bank_label'"><select :value="transactionForm.bank_label ?? ''" @change="updateTransactionForm('bank_label', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
+              <td v-else><input :value="transactionForm.description" placeholder="Описание" @input="updateTransactionForm('description', ($event.target as HTMLInputElement).value.trim())"></td>
             </template>
             <td>
               <div class="transaction-actions editing">
@@ -120,13 +134,13 @@ const {
             <tr v-else class="transaction-edit-row">
               <td class="selection-column"><input type="checkbox" :checked="isSelected(item.id)" title="Выбрать операцию" @change="emit('toggleSelection', item.id, ($event.target as HTMLInputElement).checked)"></td>
               <template v-for="columnKey in visibleColumns" :key="`edit-${item.id}-${columnKey}`">
-                <td v-if="columnKey === 'date'"><input v-model="transactionEditForm.date" required type="date"></td>
-                <td v-else-if="columnKey === 'transaction_type'"><select v-model="transactionEditForm.transaction_type"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
-                <td v-else-if="columnKey === 'section'"><select v-model.number="transactionEditForm.section"><option :value="null">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
-                <td v-else-if="columnKey === 'category'"><select v-model.number="transactionEditForm.category"><option :value="null">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
-                <td v-else-if="columnKey === 'amount'"><input v-model.number="transactionEditForm.amount" required type="number" min="0.01" step="0.01"></td>
-                <td v-else-if="columnKey === 'bank_label'"><select v-model.number="transactionEditForm.bank_label"><option :value="null">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
-                <td v-else><input v-model.trim="transactionEditForm.description" placeholder="Описание"></td>
+                <td v-if="columnKey === 'date'"><input :value="transactionEditForm.date" required type="date" @input="updateTransactionEditForm('date', ($event.target as HTMLInputElement).value)"></td>
+                <td v-else-if="columnKey === 'transaction_type'"><select :value="transactionEditForm.transaction_type" @change="updateTransactionEditForm('transaction_type', ($event.target as HTMLSelectElement).value as TransactionType)"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
+                <td v-else-if="columnKey === 'section'"><select :value="transactionEditForm.section ?? ''" @change="updateTransactionEditForm('section', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
+                <td v-else-if="columnKey === 'category'"><select :value="transactionEditForm.category ?? ''" @change="updateTransactionEditForm('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
+                <td v-else-if="columnKey === 'amount'"><input :value="transactionEditForm.amount" required type="number" min="0.01" step="0.01" @input="updateTransactionEditForm('amount', Number(($event.target as HTMLInputElement).value))"></td>
+                <td v-else-if="columnKey === 'bank_label'"><select :value="transactionEditForm.bank_label ?? ''" @change="updateTransactionEditForm('bank_label', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
+                <td v-else><input :value="transactionEditForm.description" placeholder="Описание" @input="updateTransactionEditForm('description', ($event.target as HTMLInputElement).value.trim())"></td>
               </template>
               <td>
                 <div class="transaction-actions editing">

@@ -71,12 +71,19 @@ const emit = defineEmits<{
   updateBulkCategoryValue: [value: string]
   updateBulkSectionValue: [value: string]
   updateTransaction: [id: number]
+  updateTransactionForm: [form: TransactionDraft]
+  updateTransactionEditForm: [form: TransactionDraft]
+  updateDashboardVisibility: [visibility: { summary: boolean, addBank: boolean, addCategory: boolean }]
   updateTransactionSearch: [value: string]
 }>()
 
 const {
   currency,
 } = useFormatters()
+
+function updateDashboardVisibility(field: keyof Props['dashboardVisibility'], checked: boolean) {
+  emit('updateDashboardVisibility', { ...props.dashboardVisibility, [field]: checked })
+}
 
 const transactionSearchModel = computed({
   get: () => props.transactionSearch,
@@ -102,9 +109,9 @@ const transactionSearchModel = computed({
         <div class="visibility-menu">
           <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="emit('toggleDashboardControls')"><Eye :size="18" /></button>
           <div v-if="dashboardControlsOpen" class="visibility-dropdown">
-            <label><input v-model="dashboardVisibility.summary" type="checkbox"><span>Виджеты</span></label>
-            <label><input v-model="dashboardVisibility.addBank" type="checkbox"><span>Добавить банк</span></label>
-            <label><input v-model="dashboardVisibility.addCategory" type="checkbox"><span>Добавить категории</span></label>
+            <label><input :checked="dashboardVisibility.summary" type="checkbox" @change="updateDashboardVisibility('summary', ($event.target as HTMLInputElement).checked)"><span>Виджеты</span></label>
+            <label><input :checked="dashboardVisibility.addBank" type="checkbox" @change="updateDashboardVisibility('addBank', ($event.target as HTMLInputElement).checked)"><span>Добавить банк</span></label>
+            <label><input :checked="dashboardVisibility.addCategory" type="checkbox" @change="updateDashboardVisibility('addCategory', ($event.target as HTMLInputElement).checked)"><span>Добавить категории</span></label>
             <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
             <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>Прикрепить файл</span></label>
             <div class="visibility-divider"></div>
@@ -162,6 +169,8 @@ const transactionSearchModel = computed({
       @toggle-selection="(id, checked) => emit('toggleTransactionSelection', id, checked)"
       @toggle-sort="emit('toggleTransactionSort', $event)"
       @update="emit('updateTransaction', $event)"
+      @update:transaction-form="emit('updateTransactionForm', $event)"
+      @update:transaction-edit-form="emit('updateTransactionEditForm', $event)"
     />
     <div v-if="!transactions.length && !addingTransaction" class="empty-state"><WalletCards :size="28" /><strong>Финансовых операций пока нет</strong><span>Добавьте доход, трату или накопление.</span><button class="secondary-button" @click="emit('startCreateTransaction')"><Plus :size="17" />Операция</button></div>
   </section>
