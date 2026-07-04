@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { ChevronRight, CircleGauge, RefreshCw } from '@lucide/vue'
-import { ApiError, setToken } from '@/api'
-import { login, register } from '@/services/authService'
+import { ApiError } from '@/api'
+import { useAuthStore } from '@/stores/auth'
 
-const emit = defineEmits<{
-  authenticated: []
-}>()
-
+const authStore = useAuthStore()
 const authMode = ref<'login' | 'register'>('login')
 const authForm = reactive({ username: '', password: '', phone: '' })
 const authError = ref('')
@@ -17,11 +14,11 @@ async function authenticate() {
   authLoading.value = true
   authError.value = ''
   try {
-    const response = authMode.value === 'login'
-      ? await login({ username: authForm.username, password: authForm.password })
-      : await register({ username: authForm.username, password: authForm.password, phone: authForm.phone })
-    setToken(response.token)
-    emit('authenticated')
+    if (authMode.value === 'login') {
+      await authStore.login({ username: authForm.username, password: authForm.password })
+    } else {
+      await authStore.register({ username: authForm.username, password: authForm.password, phone: authForm.phone })
+    }
   } catch (requestError) {
     authError.value = requestError instanceof ApiError ? requestError.message : 'Сервис временно недоступен'
   } finally {

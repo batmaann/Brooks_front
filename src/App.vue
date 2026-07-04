@@ -1,20 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { hasToken } from '@/api'
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import AuthView from '@/components/auth/AuthView.vue'
 import AppWorkspace from '@/components/AppWorkspace.vue'
 import { useTheme } from '@/composables/useTheme'
+import { useAuthStore } from '@/stores/auth'
 
-const authenticated = ref(hasToken())
+const authStore = useAuthStore()
+const { isAuthenticated } = storeToRefs(authStore)
 const { applyTheme } = useTheme()
-
-function handleAuthenticated() {
-  authenticated.value = true
-}
-
-function handleLogout() {
-  authenticated.value = false
-}
 
 onMounted(() => {
   applyTheme()
@@ -22,6 +16,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <AuthView v-if="!authenticated" @authenticated="handleAuthenticated" />
-  <AppWorkspace v-else @logout="handleLogout" />
+  <AuthView v-if="!isAuthenticated" />
+  <AppWorkspace v-else />
 </template>

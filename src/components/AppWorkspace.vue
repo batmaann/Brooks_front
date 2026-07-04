@@ -8,6 +8,7 @@ import DashboardView from '@/views/DashboardView.vue'
 import RefuelingsView from '@/views/RefuelingsView.vue'
 import { useSubmitState } from '@/composables/useSubmitState'
 import { useTheme } from '@/composables/useTheme'
+import { useAuthStore } from '@/stores/auth'
 import { useFinanceStore } from '@/stores/finance'
 import { useFleetStore } from '@/stores/fleet'
 import { useFinanceWorkspace } from '@/composables/useFinanceWorkspace'
@@ -19,11 +20,8 @@ import type { AppView } from '@/types/navigation'
 
 type View = AppView
 
-const emit = defineEmits<{
-  logout: []
-}>()
-
 const { applyTheme, isDarkTheme, toggleTheme } = useTheme()
+const authStore = useAuthStore()
 const financeStore = useFinanceStore()
 const fleetStore = useFleetStore()
 
@@ -90,9 +88,9 @@ const {
 } = fleet
 
 const workspaceData = useWorkspaceData({
+  authStore,
   clearRefuelingSelection,
   clearTransactionSelection,
-  emitLogout: () => emit('logout'),
   error,
   financeStore,
   fleetStore,

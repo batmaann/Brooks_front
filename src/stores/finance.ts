@@ -3,16 +3,18 @@ import { defineStore } from 'pinia'
 import {
   createBankLabel as createBankLabelRequest,
   createCategory as createCategoryRequest,
-  createTransaction as createTransactionRequest,
-  deleteTransaction as deleteTransactionRequest,
   getBankLabels,
   getCategories,
   getSections,
-  getTransactions,
   updateBankLabel as updateBankLabelRequest,
   updateCategory as updateCategoryRequest,
+} from '@/services/dictionaryService'
+import {
+  createTransaction as createTransactionRequest,
+  deleteTransaction as deleteTransactionRequest,
+  getTransactions,
   updateTransaction as updateTransactionRequest,
-} from '@/services/financeService'
+} from '@/services/transactionService'
 import type {
   BankLabel,
   BankLabelPayload,

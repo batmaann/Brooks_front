@@ -1,14 +1,15 @@
 import { ref, type Ref } from 'vue'
-import { ApiError, hasToken, setToken } from '@/api'
+import { ApiError } from '@/api'
+import type { useAuthStore } from '@/stores/auth'
 import type { useFinanceStore } from '@/stores/finance'
 import type { useFleetStore } from '@/stores/fleet'
 
 type IdCollection = Ref<Array<{ id: number }>>
 
 interface UseWorkspaceDataOptions {
+  authStore: ReturnType<typeof useAuthStore>
   clearRefuelingSelection: () => void
   clearTransactionSelection: () => void
-  emitLogout: () => void
   error: Ref<string>
   financeStore: ReturnType<typeof useFinanceStore>
   fleetStore: ReturnType<typeof useFleetStore>
@@ -32,8 +33,8 @@ export function useWorkspaceData(options: UseWorkspaceDataOptions) {
       options.keepExistingRefuelingSelection(options.refuelings.value.map((item) => item.id))
       options.keepExistingTransactionSelection(options.transactions.value.map((item) => item.id))
     } catch (requestError) {
-      if (!hasToken()) {
-        options.emitLogout()
+      if (!options.authStore.isAuthenticated) {
+        options.authStore.handleUnauthorized()
       } else {
         options.error.value = requestError instanceof ApiError ? requestError.message : 'Не удалось загрузить данные'
       }
@@ -43,12 +44,11 @@ export function useWorkspaceData(options: UseWorkspaceDataOptions) {
   }
 
   function logout() {
-    setToken(null)
+    options.authStore.logout()
     options.clearTransactionSelection()
     options.clearRefuelingSelection()
     options.fleetStore.clear()
     options.financeStore.clear()
-    options.emitLogout()
   }
 
   return {
