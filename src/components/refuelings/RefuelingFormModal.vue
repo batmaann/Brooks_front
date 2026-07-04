@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Check } from '@lucide/vue'
+import type { Category } from '@/types/finance'
 import type { GasStation, RefuelingDraft } from '@/types/refueling'
 import type { Vehicle } from '@/types/vehicle'
 
 const props = defineProps<{
+  categories: Category[]
   form: RefuelingDraft
   stations: GasStation[]
   vehicles: Vehicle[]
@@ -32,6 +34,7 @@ function numberOrNull(value: string) {
     <label>Цена за литр<input :value="form.price_per_liter" required type="number" min="0.01" step="0.01" @input="updateField('price_per_liter', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Тип топлива<select :value="form.fuel_type || ''" @change="updateField('fuel_type', ($event.target as HTMLSelectElement).value)"><option v-for="fuelType in ['АИ-92', 'АИ-95', 'АИ-98', 'ДТ', 'ГАЗ']" :key="fuelType">{{ fuelType }}</option></select></label>
     <label>АЗС<select :value="form.gas_station ?? ''" @change="updateField('gas_station', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="station in stations" :key="station.id" :value="station.id">{{ station.company }} {{ station.name }}</option></select></label>
+    <label>Категория<select :value="form.category ?? ''" @change="updateField('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>
     <label>Работа сервиса<input :value="form.service_operation" type="number" min="0" step="0.01" @input="updateField('service_operation', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Кэшбек<input :value="form.cashback" type="number" min="0" step="0.01" @input="updateField('cashback', Number(($event.target as HTMLInputElement).value))"></label>
     <label class="full">Комментарий<textarea :value="form.comment" rows="3" placeholder="Необязательная заметка" @input="updateField('comment', ($event.target as HTMLTextAreaElement).value.trim())"></textarea></label>

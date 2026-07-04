@@ -55,6 +55,7 @@ function defaultRefuelingForm(vehicle: number | null = null) {
     is_full_tank: true,
     cashback: 0,
     comment: '',
+    category: null as number | null,
   }
 }
 
@@ -196,6 +197,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
       is_full_tank: Boolean(item.is_full_tank),
       cashback: Number(item.cashback || 0),
       comment: item.comment || '',
+      category: item.category,
     })
   }
 
