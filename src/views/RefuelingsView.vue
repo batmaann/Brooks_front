@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Building2, CarFront, Eye, Plus, Search, Trash2 } from '@lucide/vue'
+import { Eye, Plus, Search } from '@lucide/vue'
 import { computed } from 'vue'
+import GasStationPanel from '@/components/refuelings/GasStationPanel.vue'
 import RefuelingBulkActions from '@/components/refuelings/RefuelingBulkActions.vue'
+import RefuelingColumnSettings from '@/components/refuelings/RefuelingColumnSettings.vue'
+import RefuelingSummary from '@/components/refuelings/RefuelingSummary.vue'
 import RefuelingTable from '@/components/refuelings/RefuelingTable.vue'
-import { useFormatters } from '@/composables/useFormatters'
+import VehiclePanel from '@/components/refuelings/VehiclePanel.vue'
 import type { SortDirection } from '@/types/common'
 import type { GasStation, Refueling } from '@/types/refueling'
 import type { RefuelingColumnKey } from '@/types/table'
@@ -67,16 +70,6 @@ const emit = defineEmits<{
   updateSearch: [value: string]
 }>()
 
-const {
-  currency,
-  number,
-  optionalNumber,
-} = useFormatters()
-
-function updateRefuelingVisibility(field: keyof Props['refuelingVisibility'], checked: boolean) {
-  emit('updateRefuelingVisibility', { ...props.refuelingVisibility, [field]: checked })
-}
-
 const searchModel = computed({
   get: () => props.search,
   set: (value: string) => emit('updateSearch', value),
@@ -85,12 +78,14 @@ const searchModel = computed({
 </script>
 
 <template>
-  <div v-if="refuelingVisibility.summary" class="finance-summary refueling-summary">
-    <div class="finance-summary-item income"><span>Заправки</span><strong>{{ refuelings.length }}</strong></div>
-    <div class="finance-summary-item balance"><span>Транспорт</span><strong>{{ vehicles.length }}</strong></div>
-    <div class="finance-summary-item saving"><span>АЗС</span><strong>{{ stations.length }}</strong></div>
-    <div class="finance-summary-item expense"><span>Итог</span><strong>{{ currency(refuelingTotalCost) }}</strong><small>{{ optionalNumber(refuelingTotalFuel, ' л', 2) }}</small></div>
-  </div>
+  <RefuelingSummary
+    v-if="refuelingVisibility.summary"
+    :refueling-count="refuelings.length"
+    :station-count="stations.length"
+    :total-cost="refuelingTotalCost"
+    :total-fuel="refuelingTotalFuel"
+    :vehicle-count="vehicles.length"
+  />
 
   <section v-if="refuelingVisibility.vehicles || refuelingVisibility.stations" class="refueling-management top-management">
     <div class="section-heading management-heading">
@@ -98,44 +93,19 @@ const searchModel = computed({
     </div>
 
     <div class="management-grid" :class="{ single: !refuelingVisibility.vehicles || !refuelingVisibility.stations }">
-      <section v-if="refuelingVisibility.vehicles" class="management-panel">
-        <div class="section-heading compact-heading">
-          <div><p class="eyebrow">Транспорт</p><h2>{{ filteredVehicles.length }} записей</h2></div>
-        </div>
-        <div class="vehicle-grid compact-grid">
-          <article v-for="vehicle in filteredVehicles" :key="vehicle.id" class="vehicle-card">
-            <div class="vehicle-card-head">
-              <div class="vehicle-symbol"><CarFront :size="24" /></div>
-              <span class="status" :class="{ inactive: !vehicle.is_active }"><i></i>{{ vehicle.is_active ? 'Активен' : 'Неактивен' }}</span>
-              <button class="icon-button danger" title="Удалить транспорт" @click="emit('removeVehicle', vehicle.id, vehicle.name)"><Trash2 :size="17" /></button>
-            </div>
-            <div>
-              <h2>{{ vehicle.name }}</h2>
-              <p>{{ [vehicle.brand, vehicle.model, vehicle.year].filter(Boolean).join(' · ') || 'Без дополнительных данных' }}</p>
-            </div>
-            <dl>
-              <div><dt>Текущий пробег</dt><dd>{{ number(vehicle.current_odometer || vehicle.initial_odometer) }} км</dd></div>
-              <div><dt>Начальный</dt><dd>{{ number(vehicle.initial_odometer) }} км</dd></div>
-            </dl>
-          </article>
-          <button class="add-card" @click="emit('openVehicleModal')"><Plus :size="23" /><strong>Добавить транспорт</strong></button>
-        </div>
-      </section>
+      <VehiclePanel
+        v-if="refuelingVisibility.vehicles"
+        :vehicles="filteredVehicles"
+        @open-vehicle-modal="emit('openVehicleModal')"
+        @remove-vehicle="(id, label) => emit('removeVehicle', id, label)"
+      />
 
-      <section v-if="refuelingVisibility.stations" class="management-panel">
-        <div class="section-heading compact-heading">
-          <div><p class="eyebrow">АЗС</p><h2>{{ filteredStations.length }} записей</h2></div>
-        </div>
-        <div class="station-list compact-station-list">
-          <article v-for="station in filteredStations" :key="station.id">
-            <div class="station-icon"><Building2 :size="21" /></div>
-            <div class="station-main"><h2>{{ station.company || station.name }}</h2><p>{{ station.name }}<template v-if="station.number"> · №{{ station.number }}</template></p></div>
-            <span class="station-address">{{ station.address || 'Адрес не указан' }}</span>
-            <button class="icon-button danger" title="Удалить АЗС" @click="emit('removeGasStation', station.id, station.name)"><Trash2 :size="17" /></button>
-          </article>
-          <button class="add-row" @click="emit('openStationModal')"><Plus :size="20" />Добавить АЗС</button>
-        </div>
-      </section>
+      <GasStationPanel
+        v-if="refuelingVisibility.stations"
+        :stations="filteredStations"
+        @open-station-modal="emit('openStationModal')"
+        @remove-gas-station="(id, label) => emit('removeGasStation', id, label)"
+      />
     </div>
   </section>
 
@@ -150,15 +120,16 @@ const searchModel = computed({
         <button class="secondary-button" title="Добавить АЗС" @click="emit('openStationModal')"><Plus :size="18" />Добавить АЗС</button>
         <div class="visibility-menu">
           <button class="icon-button" :class="{ active: refuelingControlsOpen }" title="Настроить заправки" type="button" @click="emit('toggleRefuelingControls')"><Eye :size="18" /></button>
-          <div v-if="refuelingControlsOpen" class="visibility-dropdown">
-            <label><input :checked="refuelingVisibility.summary" type="checkbox" @change="updateRefuelingVisibility('summary', ($event.target as HTMLInputElement).checked)"><span>Виджеты</span></label>
-            <label><input :checked="refuelingVisibility.vehicles" type="checkbox" @change="updateRefuelingVisibility('vehicles', ($event.target as HTMLInputElement).checked)"><span>Транспорт</span></label>
-            <label><input :checked="refuelingVisibility.stations" type="checkbox" @change="updateRefuelingVisibility('stations', ($event.target as HTMLInputElement).checked)"><span>АЗС</span></label>
-            <label class="disabled" title="В разработке"><input disabled type="checkbox"><span>AI</span></label>
-            <div class="visibility-divider"></div>
-            <strong class="visibility-title">Столбцы</strong>
-            <label v-for="columnKey in refuelingColumnOrder" :key="`refueling-visibility-${columnKey}`" :class="{ disabled: !canToggleRefuelingColumn(columnKey) }"><input type="checkbox" :checked="refuelingColumnVisibility[columnKey]" :disabled="!canToggleRefuelingColumn(columnKey)" @change="emit('toggleRefuelingColumn', columnKey, ($event.target as HTMLInputElement).checked)"><span>{{ refuelingColumnLabels[columnKey] }}</span></label>
-          </div>
+          <RefuelingColumnSettings
+            v-if="refuelingControlsOpen"
+            :can-toggle-column="canToggleRefuelingColumn"
+            :column-labels="refuelingColumnLabels"
+            :column-order="refuelingColumnOrder"
+            :column-visibility="refuelingColumnVisibility"
+            :refueling-visibility="refuelingVisibility"
+            @toggle-column="(key, checked) => emit('toggleRefuelingColumn', key, checked)"
+            @update-refueling-visibility="emit('updateRefuelingVisibility', $event)"
+          />
         </div>
       </div>
     </div>
