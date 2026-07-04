@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Check, RefreshCw, Trash2 } from '@lucide/vue'
 import { ApiError, hasToken, setToken } from '@/api'
 import AuthView from '@/components/auth/AuthView.vue'
-import AboutContent from '@/components/modals/AboutContent.vue'
-import BankLabelModal from '@/components/finance/BankLabelModal.vue'
-import CategoryModal from '@/components/finance/CategoryModal.vue'
-import DeleteConfirmContent from '@/components/modals/DeleteConfirmContent.vue'
-import GasStationFormModal from '@/components/refuelings/GasStationFormModal.vue'
-import RefuelingFormModal from '@/components/refuelings/RefuelingFormModal.vue'
-import VehicleFormModal from '@/components/refuelings/VehicleFormModal.vue'
-import BaseModal from '@/components/ui/BaseModal.vue'
+import AppModalLayer from '@/components/modals/AppModalLayer.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { navItems } from '@/constants/navigation'
 import DashboardView from '@/views/DashboardView.vue'
@@ -927,61 +919,43 @@ onMounted(() => {
     />
   </AppLayout>
 
-  <BaseModal
-    v-if="modal"
-    :close-danger="modal === 'about'"
-    :eyebrow="modalEyebrow"
-    :show-footer="modal !== 'about' && modal !== 'bankLabel' && modal !== 'category'"
-    :title="modalTitle"
-    :wide="modal === 'bankLabel' || modal === 'category'"
+  <AppModalLayer
+    :bank-label-create-form="bankLabelForm"
+    :bank-label-edit-form="bankLabelEditForm"
+    :bank-labels="bankLabels"
+    :categories="categories"
+    :category-create-form="categoryForm"
+    :category-edit-form="categoryEditForm"
+    :delete-label="pendingDelete?.label"
+    :error="error"
+    :modal="modal"
+    :modal-eyebrow="modalEyebrow"
+    :modal-title="modalTitle"
+    :refueling-form="refuelingForm"
+    :saving="saving"
+    :selected-bank-label-id="selectedBankLabelId"
+    :selected-category-id="selectedCategoryId"
+    :station-form="stationForm"
+    :stations="stations"
+    :vehicle-form="vehicleForm"
+    :vehicles="vehicles"
     @close="closeModal"
-  >
-      <VehicleFormModal v-if="modal === 'vehicle'" :form="vehicleForm" @submit="createVehicle" @update:form="Object.assign(vehicleForm, $event)" />
-      <RefuelingFormModal v-if="modal === 'refueling'" :form="refuelingForm" :stations="stations" :vehicles="vehicles" @submit="saveRefueling" @update:form="Object.assign(refuelingForm, $event)" />
-      <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="createStation" @update:form="Object.assign(stationForm, $event)" />
-      <BankLabelModal
-        v-if="modal === 'bankLabel'"
-        :bank-labels="bankLabels"
-        :create-form="bankLabelForm"
-        :edit-form="bankLabelEditForm"
-        :saving="saving"
-        :selected-id="selectedBankLabelId"
-        @create="createBankLabel"
-        @select="selectBankLabelForEdit"
-        @update="updateBankLabel"
-        @update:create-form="Object.assign(bankLabelForm, $event)"
-        @update:edit-form="Object.assign(bankLabelEditForm, $event)"
-      />
-      <CategoryModal
-        v-if="modal === 'category'"
-        :categories="categories"
-        :create-form="categoryForm"
-        :edit-form="categoryEditForm"
-        :saving="saving"
-        :selected-id="selectedCategoryId"
-        @create="createCategory"
-        @select="selectCategoryForEdit"
-        @update="updateCategory"
-        @update:create-form="Object.assign(categoryForm, $event)"
-        @update:edit-form="Object.assign(categoryEditForm, $event)"
-      />
-      <AboutContent v-if="modal === 'about'" />
-      <DeleteConfirmContent v-if="modal === 'delete'" :label="pendingDelete?.label" />
-
-      <p v-if="error" class="form-error modal-error">{{ error }}</p>
-      <template #footer>
-        <template v-if="modal === 'delete'">
-          <button class="danger-button" type="button" :disabled="saving" @click="closeModal">Отмена</button>
-          <button class="secondary-button" type="button" :disabled="saving" @click="confirmRemove">
-            <RefreshCw v-if="saving" class="spin" :size="17" /><Trash2 v-else :size="17" />Удалить
-          </button>
-        </template>
-        <template v-else>
-          <button class="secondary-button" type="button" @click="closeModal">Отмена</button>
-          <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving">
-            <RefreshCw v-if="saving" class="spin" :size="17" /><Check v-else :size="17" />Сохранить
-          </button>
-        </template>
-      </template>
-  </BaseModal>
+    @confirm-delete="confirmRemove"
+    @create-bank-label="createBankLabel"
+    @create-category="createCategory"
+    @create-station="createStation"
+    @create-vehicle="createVehicle"
+    @save-refueling="saveRefueling"
+    @select-bank-label="selectBankLabelForEdit"
+    @select-category="selectCategoryForEdit"
+    @update-bank-label="updateBankLabel"
+    @update-bank-label-create-form="Object.assign(bankLabelForm, $event)"
+    @update-bank-label-edit-form="Object.assign(bankLabelEditForm, $event)"
+    @update-category="updateCategory"
+    @update-category-create-form="Object.assign(categoryForm, $event)"
+    @update-category-edit-form="Object.assign(categoryEditForm, $event)"
+    @update-refueling-form="Object.assign(refuelingForm, $event)"
+    @update-station-form="Object.assign(stationForm, $event)"
+    @update-vehicle-form="Object.assign(vehicleForm, $event)"
+  />
 </template>
