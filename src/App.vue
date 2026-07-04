@@ -11,10 +11,11 @@ import { storeToRefs } from 'pinia'
 import { useBulkSelection } from '@/composables/useBulkSelection'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useFormatters } from '@/composables/useFormatters'
+import { useSortableData } from '@/composables/useSortableData'
+import { useSubmitState } from '@/composables/useSubmitState'
 import { useTheme } from '@/composables/useTheme'
 import { useFinanceStore } from '@/stores/finance'
 import { useFleetStore } from '@/stores/fleet'
-import type { SortDirection } from '@/types/common'
 import type {
   Transaction,
   TransactionDraft,
@@ -52,8 +53,7 @@ const {
 const activeView = ref<View>('dashboard')
 const mobileNavOpen = ref(false)
 const loading = ref(false)
-const saving = ref(false)
-const error = ref('')
+const { error, saving, submit: submitState } = useSubmitState((requestError) => requestError instanceof ApiError ? requestError.message : 'Не удалось сохранить данные')
 const search = ref('')
 const transactionSearch = ref('')
 const modal = ref<Modal>(null)
@@ -108,14 +108,6 @@ const bulkCategoryValue = ref('')
 const bulkSectionValue = ref('')
 const bulkRefuelingVehicleValue = ref('')
 const bulkRefuelingStationValue = ref('')
-const transactionSort = reactive<{ key: TransactionSortKey | null, direction: SortDirection }>({
-  key: null,
-  direction: null,
-})
-const refuelingSort = reactive<{ key: RefuelingColumnKey | null, direction: SortDirection }>({
-  key: null,
-  direction: null,
-})
 const transactionColumnLabels: Record<TransactionSortKey, string> = {
   date: 'Дата',
   transaction_type: 'Тип операции',
@@ -211,35 +203,17 @@ const transactionBalance = computed(() => transactionIncome.value - transactionE
 const refuelingTotalCost = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.effective_cost || item.total_cost || 0), 0))
 const refuelingTotalFuel = computed(() => refuelings.value.reduce((sum, item) => sum + Number(item.fuel_quantity || 0), 0))
 
-const sortedTransactions = computed(() => {
-  if (!transactionSort.key || !transactionSort.direction) return transactions.value
+const {
+  sort: transactionSort,
+  sortedItems: sortedTransactions,
+  toggleSort: toggleTransactionSort,
+} = useSortableData<Transaction, TransactionSortKey>(transactions, transactionSortValue)
 
-  const directionMultiplier = transactionSort.direction === 'asc' ? 1 : -1
-  return [...transactions.value].sort((first, second) => {
-    const firstValue = transactionSortValue(first, transactionSort.key!)
-    const secondValue = transactionSortValue(second, transactionSort.key!)
-    const result = typeof firstValue === 'number' && typeof secondValue === 'number'
-      ? firstValue - secondValue
-      : String(firstValue).localeCompare(String(secondValue), 'ru', { numeric: true, sensitivity: 'base' })
-
-    return result * directionMultiplier
-  })
-})
-
-const sortedRefuelings = computed(() => {
-  if (!refuelingSort.key || !refuelingSort.direction) return refuelings.value
-
-  const directionMultiplier = refuelingSort.direction === 'asc' ? 1 : -1
-  return [...refuelings.value].sort((first, second) => {
-    const firstValue = refuelingSortValue(first, refuelingSort.key!)
-    const secondValue = refuelingSortValue(second, refuelingSort.key!)
-    const result = typeof firstValue === 'number' && typeof secondValue === 'number'
-      ? firstValue - secondValue
-      : String(firstValue).localeCompare(String(secondValue), 'ru', { numeric: true, sensitivity: 'base' })
-
-    return result * directionMultiplier
-  })
-})
+const {
+  sort: refuelingSort,
+  sortedItems: sortedRefuelings,
+  toggleSort: toggleRefuelingSort,
+} = useSortableData<Refueling, RefuelingColumnKey>(refuelings, refuelingSortValue)
 
 const visibleTransactions = computed(() => {
   const query = transactionSearch.value.trim().toLowerCase()
@@ -350,38 +324,6 @@ function refuelingSortValue(item: Refueling, key: RefuelingColumnKey) {
   if (key === 'fuel_quantity') return Number(item.fuel_quantity || 0)
   if (key === 'is_full_tank') return item.is_full_tank ? 1 : 0
   return Number(item.effective_cost || item.total_cost || 0)
-}
-
-function toggleRefuelingSort(key: RefuelingColumnKey) {
-  if (refuelingSort.key !== key) {
-    refuelingSort.key = key
-    refuelingSort.direction = 'asc'
-    return
-  }
-
-  if (refuelingSort.direction === 'asc') {
-    refuelingSort.direction = 'desc'
-    return
-  }
-
-  refuelingSort.key = null
-  refuelingSort.direction = null
-}
-
-function toggleTransactionSort(key: TransactionSortKey) {
-  if (transactionSort.key !== key) {
-    transactionSort.key = key
-    transactionSort.direction = 'asc'
-    return
-  }
-
-  if (transactionSort.direction === 'asc') {
-    transactionSort.direction = 'desc'
-    return
-  }
-
-  transactionSort.key = null
-  transactionSort.direction = null
 }
 
 async function handleAuthenticated() {
@@ -720,16 +662,10 @@ async function updateTransaction(id: number) {
 }
 
 async function submit(action: () => Promise<void>, options: { closeAfter?: boolean } = {}) {
-  saving.value = true
-  error.value = ''
-  try {
-    await action()
-    if (options.closeAfter !== false) closeModal()
-  } catch (requestError) {
-    error.value = requestError instanceof ApiError ? requestError.message : 'Не удалось сохранить данные'
-  } finally {
-    saving.value = false
-  }
+  await submitState(action, {
+    closeAfter: options.closeAfter,
+    onSuccess: closeModal,
+  })
 }
 
 function remove(resource: DeleteResource, id: number, label: string) {
