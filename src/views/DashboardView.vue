@@ -5,85 +5,69 @@ import FinanceSummary from '@/components/finance/FinanceSummary.vue'
 import TransactionBulkActions from '@/components/finance/TransactionBulkActions.vue'
 import TransactionColumnSettings from '@/components/finance/TransactionColumnSettings.vue'
 import TransactionTable from '@/components/finance/TransactionTable.vue'
-import type { BankLabel, Category, Section, Transaction, TransactionDraft, TransactionType } from '@/types/finance'
-import type { SortDirection } from '@/types/common'
-import type { TransactionSortKey } from '@/types/table'
+import { useFinanceWorkspaceContext, useWorkspaceModalsContext, useWorkspaceUiContext } from '@/composables/useWorkspaceContext'
 
-interface Props {
-  addingTransaction: boolean
-  allVisibleTransactionsSelected: boolean
-  bankLabels: BankLabel[]
-  bulkCategoryValue: string
-  bulkSectionValue: string
-  canToggleTransactionColumn: (key: TransactionSortKey) => boolean
-  categories: Category[]
-  dashboardControlsOpen: boolean
-  dashboardVisibility: { summary: boolean, addBank: boolean, addCategory: boolean }
-  draggedTransactionColumn: TransactionSortKey | null
-  editingTransactionId: number | null
-  isTransactionSelected: (id: number) => boolean
-  saving: boolean
-  sectionName: (id: number | null) => string
-  sections: Section[]
-  selectedTransactionCount: number
-  transactionBalance: number
-  transactionColumnLabels: Record<TransactionSortKey, string>
-  transactionColumnOrder: TransactionSortKey[]
-  transactionColumnVisibility: Record<TransactionSortKey, boolean>
-  transactionEditForm: TransactionDraft
-  transactionExpense: number
-  transactionForm: TransactionDraft
-  transactionIncome: number
-  transactionSaving: number
-  transactionSearch: string
-  transactionSign: (type: TransactionType) => string
-  transactionSort: { key: TransactionSortKey | null, direction: SortDirection }
-  transactionTitle: (item: Transaction) => string
-  transactionTypeLabels: Record<TransactionType, string>
-  transactions: Transaction[]
-  visibleTransactionColumns: TransactionSortKey[]
-  visibleTransactionIds: number[]
-  visibleTransactions: Transaction[]
-}
+const finance = useFinanceWorkspaceContext()
+const modals = useWorkspaceModalsContext()
+const ui = useWorkspaceUiContext()
 
-const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  applyBulkTransactionCategory: []
-  applyBulkTransactionSection: []
-  cancelCreateTransaction: []
-  cancelEditTransaction: []
-  clearTransactionSelection: []
-  createTransaction: []
-  dropTransactionColumn: [key: TransactionSortKey]
-  finishTransactionColumnDrag: []
-  openBankLabelModal: []
-  openCategoryModal: []
-  removeTransaction: [id: number, label: string]
-  requestBulkTransactionDelete: []
-  startCreateTransaction: []
-  startEditTransaction: [item: Transaction]
-  startTransactionColumnDrag: [key: TransactionSortKey]
-  toggleAllVisibleTransactions: [checked: boolean]
-  toggleDashboardControls: []
-  toggleTransactionColumn: [key: TransactionSortKey, checked: boolean]
-  toggleTransactionSelection: [id: number, checked: boolean]
-  toggleTransactionSort: [key: TransactionSortKey]
-  updateBulkCategoryValue: [value: string]
-  updateBulkSectionValue: [value: string]
-  updateTransaction: [id: number]
-  updateTransactionForm: [form: TransactionDraft]
-  updateTransactionEditForm: [form: TransactionDraft]
-  updateDashboardVisibility: [visibility: { summary: boolean, addBank: boolean, addCategory: boolean }]
-  updateTransactionSearch: [value: string]
-}>()
-
+const {
+  addingTransaction,
+  allVisibleTransactionsSelected,
+  applyBulkTransactionCategory,
+  applyBulkTransactionSection,
+  bankLabels,
+  bulkCategoryValue,
+  bulkSectionValue,
+  canToggleTransactionColumn,
+  cancelCreateTransaction,
+  cancelEditTransaction,
+  categories,
+  clearTransactionSelection,
+  createTransaction,
+  dashboardVisibility,
+  draggedTransactionColumn,
+  dropTransactionColumn,
+  editingTransactionId,
+  finishTransactionColumnDrag,
+  isTransactionSelected,
+  requestBulkTransactionDelete,
+  sectionName,
+  sections,
+  selectedTransactionCount,
+  startCreateTransaction,
+  startEditTransaction,
+  startTransactionColumnDrag,
+  toggleAllVisibleTransactions,
+  toggleTransactionColumn,
+  toggleTransactionSelection,
+  toggleTransactionSort,
+  transactionBalance,
+  transactionColumnLabels,
+  transactionColumnOrder,
+  transactionColumnVisibility,
+  transactionEditForm,
+  transactionExpense,
+  transactionForm,
+  transactionIncome,
+  transactions,
+  transactionSaving,
+  transactionSign,
+  transactionSort,
+  transactionTitle,
+  transactionTypeLabels,
+  updateTransaction,
+  visibleTransactionColumns,
+  visibleTransactionIds,
+  visibleTransactions,
+} = finance
+const { openModal, remove } = modals
+const { dashboardControlsOpen, saving, transactionSearch } = ui
 
 const transactionSearchModel = computed({
-  get: () => props.transactionSearch,
-  set: (value: string) => emit('updateTransactionSearch', value),
+  get: () => transactionSearch.value,
+  set: (value: string) => { transactionSearch.value = value },
 })
-
 </script>
 
 <template>
@@ -98,11 +82,11 @@ const transactionSearchModel = computed({
     <div class="section-heading">
       <div class="finance-heading-main"><h2>Финансовые операции</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="transactionSearchModel" placeholder="Поиск по операциям, банку и описанию"></div></div>
       <div class="finance-heading-actions">
-        <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="emit('startCreateTransaction')"><Plus :size="18" /></button>
-        <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="emit('openBankLabelModal')">Добавить банк</button>
-        <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" @click="emit('openCategoryModal')">Добавить категории</button>
+        <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction()"><Plus :size="18" /></button>
+        <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="openModal('bankLabel')">Добавить банк</button>
+        <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" @click="openModal('category')">Добавить категории</button>
         <div class="visibility-menu">
-          <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="emit('toggleDashboardControls')"><Eye :size="18" /></button>
+          <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" @click="dashboardControlsOpen = !dashboardControlsOpen"><Eye :size="18" /></button>
           <TransactionColumnSettings
             v-if="dashboardControlsOpen"
             :can-toggle-column="canToggleTransactionColumn"
@@ -110,8 +94,8 @@ const transactionSearchModel = computed({
             :column-order="transactionColumnOrder"
             :column-visibility="transactionColumnVisibility"
             :dashboard-visibility="dashboardVisibility"
-            @toggle-column="(key, checked) => emit('toggleTransactionColumn', key, checked)"
-            @update-dashboard-visibility="emit('updateDashboardVisibility', $event)"
+            @toggle-column="toggleTransactionColumn"
+            @update-dashboard-visibility="Object.assign(dashboardVisibility, $event)"
           />
         </div>
       </div>
@@ -123,12 +107,12 @@ const transactionSearchModel = computed({
       :saving="saving"
       :sections="sections"
       :selected-count="selectedTransactionCount"
-      @apply-category="emit('applyBulkTransactionCategory')"
-      @apply-section="emit('applyBulkTransactionSection')"
-      @clear="emit('clearTransactionSelection')"
-      @delete="emit('requestBulkTransactionDelete')"
-      @update-bulk-category-value="emit('updateBulkCategoryValue', $event)"
-      @update-bulk-section-value="emit('updateBulkSectionValue', $event)"
+      @apply-category="applyBulkTransactionCategory"
+      @apply-section="applyBulkTransactionSection"
+      @clear="clearTransactionSelection"
+      @delete="requestBulkTransactionDelete"
+      @update-bulk-category-value="bulkCategoryValue = $event"
+      @update-bulk-section-value="bulkSectionValue = $event"
     />
     <TransactionTable
       :adding-transaction="addingTransaction"
@@ -152,21 +136,21 @@ const transactionSearchModel = computed({
       :transactions="visibleTransactions"
       :visible-column-ids="visibleTransactionIds"
       :visible-columns="visibleTransactionColumns"
-      @cancel-create="emit('cancelCreateTransaction')"
-      @cancel-edit="emit('cancelEditTransaction')"
-      @create="emit('createTransaction')"
-      @drop-column="emit('dropTransactionColumn', $event)"
-      @finish-column-drag="emit('finishTransactionColumnDrag')"
-      @remove="(id, label) => emit('removeTransaction', id, label)"
-      @start-column-drag="emit('startTransactionColumnDrag', $event)"
-      @start-edit="emit('startEditTransaction', $event)"
-      @toggle-all="emit('toggleAllVisibleTransactions', $event)"
-      @toggle-selection="(id, checked) => emit('toggleTransactionSelection', id, checked)"
-      @toggle-sort="emit('toggleTransactionSort', $event)"
-      @update="emit('updateTransaction', $event)"
-      @update:transaction-form="emit('updateTransactionForm', $event)"
-      @update:transaction-edit-form="emit('updateTransactionEditForm', $event)"
+      @cancel-create="cancelCreateTransaction"
+      @cancel-edit="cancelEditTransaction"
+      @create="createTransaction"
+      @drop-column="dropTransactionColumn"
+      @finish-column-drag="finishTransactionColumnDrag"
+      @remove="(id, label) => remove('transaction', id, label)"
+      @start-column-drag="startTransactionColumnDrag"
+      @start-edit="startEditTransaction"
+      @toggle-all="toggleAllVisibleTransactions"
+      @toggle-selection="toggleTransactionSelection"
+      @toggle-sort="toggleTransactionSort"
+      @update="updateTransaction"
+      @update:transaction-form="Object.assign(transactionForm, $event)"
+      @update:transaction-edit-form="Object.assign(transactionEditForm, $event)"
     />
-    <div v-if="!transactions.length && !addingTransaction" class="empty-state"><WalletCards :size="28" /><strong>Финансовых операций пока нет</strong><span>Добавьте доход, трату или накопление.</span><button class="secondary-button" @click="emit('startCreateTransaction')"><Plus :size="17" />Операция</button></div>
+    <div v-if="!transactions.length && !addingTransaction" class="empty-state"><WalletCards :size="28" /><strong>Финансовых операций пока нет</strong><span>Добавьте доход, трату или накопление.</span><button class="secondary-button" @click="startCreateTransaction()"><Plus :size="17" />Операция</button></div>
   </section>
 </template>

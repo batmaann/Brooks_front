@@ -7,74 +7,57 @@ import RefuelingColumnSettings from '@/components/refuelings/RefuelingColumnSett
 import RefuelingSummary from '@/components/refuelings/RefuelingSummary.vue'
 import RefuelingTable from '@/components/refuelings/RefuelingTable.vue'
 import VehiclePanel from '@/components/refuelings/VehiclePanel.vue'
-import type { SortDirection } from '@/types/common'
-import type { GasStation, Refueling } from '@/types/refueling'
-import type { RefuelingColumnKey } from '@/types/table'
-import type { Vehicle } from '@/types/vehicle'
+import { useFleetWorkspaceContext, useWorkspaceModalsContext, useWorkspaceUiContext } from '@/composables/useWorkspaceContext'
 
-interface Props {
-  allVisibleRefuelingsSelected: boolean
-  bulkRefuelingStationValue: string
-  bulkRefuelingVehicleValue: string
-  canToggleRefuelingColumn: (key: RefuelingColumnKey) => boolean
-  draggedRefuelingColumn: RefuelingColumnKey | null
-  filteredRefuelings: Refueling[]
-  filteredStations: GasStation[]
-  filteredVehicles: Vehicle[]
-  isRefuelingSelected: (id: number) => boolean
-  refuelingColumnLabels: Record<RefuelingColumnKey, string>
-  refuelingColumnOrder: RefuelingColumnKey[]
-  refuelingColumnVisibility: Record<RefuelingColumnKey, boolean>
-  refuelingControlsOpen: boolean
-  refuelingSort: { key: RefuelingColumnKey | null, direction: SortDirection }
-  refuelingTotalCost: number
-  refuelingTotalFuel: number
-  refuelingVisibility: { summary: boolean, vehicles: boolean, stations: boolean }
-  refuelings: Refueling[]
-  saving: boolean
-  search: string
-  selectedRefuelingCount: number
-  stationById: (id: number | null) => GasStation | undefined
-  stations: GasStation[]
-  vehicleById: (id: number | null) => Vehicle | undefined
-  vehicles: Vehicle[]
-  visibleRefuelingColumns: RefuelingColumnKey[]
-  visibleRefuelingIds: number[]
-}
+const fleet = useFleetWorkspaceContext()
+const modals = useWorkspaceModalsContext()
+const ui = useWorkspaceUiContext()
 
-const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  applyBulkRefuelingStation: []
-  applyBulkRefuelingVehicle: []
-  clearRefuelingSelection: []
-  dropRefuelingColumn: [key: RefuelingColumnKey]
-  finishRefuelingColumnDrag: []
-  openRefuelingModal: []
-  openStationModal: []
-  openVehicleModal: []
-  removeGasStation: [id: number, label: string]
-  removeRefueling: [id: number, label: string]
-  removeVehicle: [id: number, label: string]
-  requestBulkRefuelingDelete: []
-  startEditRefueling: [item: Refueling]
-  startRefuelingColumnDrag: [key: RefuelingColumnKey]
-  toggleAllVisibleRefuelings: [checked: boolean]
-  toggleRefuelingColumn: [key: RefuelingColumnKey, checked: boolean]
-  toggleRefuelingControls: []
-  toggleRefuelingSelection: [id: number, checked: boolean]
-  toggleRefuelingSort: [key: RefuelingColumnKey]
-  updateBulkRefuelingStationValue: [value: string]
-  updateBulkRefuelingVehicleValue: [value: string]
-  updateRefuelingVisibility: [visibility: { summary: boolean, vehicles: boolean, stations: boolean }]
-  updateSearch: [value: string]
-}>()
+const {
+  allVisibleRefuelingsSelected,
+  applyBulkRefuelingStation,
+  applyBulkRefuelingVehicle,
+  bulkRefuelingStationValue,
+  bulkRefuelingVehicleValue,
+  canToggleRefuelingColumn,
+  clearRefuelingSelection,
+  draggedRefuelingColumn,
+  dropRefuelingColumn,
+  filteredRefuelings,
+  filteredStations,
+  filteredVehicles,
+  finishRefuelingColumnDrag,
+  isRefuelingSelected,
+  refuelingColumnLabels,
+  refuelingColumnOrder,
+  refuelingColumnVisibility,
+  refuelingControlsOpen,
+  refuelingSort,
+  refuelingTotalCost,
+  refuelingTotalFuel,
+  refuelingVisibility,
+  refuelings,
+  requestBulkRefuelingDelete,
+  selectedRefuelingCount,
+  startRefuelingColumnDrag,
+  stationById,
+  stations,
+  toggleAllVisibleRefuelings,
+  toggleRefuelingColumn,
+  toggleRefuelingSelection,
+  toggleRefuelingSort,
+  vehicleById,
+  vehicles,
+  visibleRefuelingColumns,
+  visibleRefuelingIds,
+} = fleet
+const { openModal, remove, startEditRefueling } = modals
+const { saving, search } = ui
 
 const searchModel = computed({
-  get: () => props.search,
-  set: (value: string) => emit('updateSearch', value),
+  get: () => search.value,
+  set: (value: string) => { search.value = value },
 })
-
 </script>
 
 <template>
@@ -96,15 +79,15 @@ const searchModel = computed({
       <VehiclePanel
         v-if="refuelingVisibility.vehicles"
         :vehicles="filteredVehicles"
-        @open-vehicle-modal="emit('openVehicleModal')"
-        @remove-vehicle="(id, label) => emit('removeVehicle', id, label)"
+        @open-vehicle-modal="openModal('vehicle')"
+        @remove-vehicle="(id, label) => remove('vehicle', id, label)"
       />
 
       <GasStationPanel
         v-if="refuelingVisibility.stations"
         :stations="filteredStations"
-        @open-station-modal="emit('openStationModal')"
-        @remove-gas-station="(id, label) => emit('removeGasStation', id, label)"
+        @open-station-modal="openModal('station')"
+        @remove-gas-station="(id, label) => remove('gasStation', id, label)"
       />
     </div>
   </section>
@@ -114,12 +97,12 @@ const searchModel = computed({
       <div class="finance-heading-main"><h2>Заправки</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="searchModel" placeholder="Поиск по заправкам, транспорту и АЗС"></div></div>
       <div class="finance-heading-actions">
         <span class="action-tooltip" :title="vehicles.length ? 'Добавить новую заправку' : 'Сначала добавьте транспорт'">
-          <button class="primary-button dashboard-add-button" title="Добавить заправку" :disabled="!vehicles.length" @click="emit('openRefuelingModal')"><Plus :size="18" /></button>
+          <button class="primary-button dashboard-add-button" title="Добавить заправку" :disabled="!vehicles.length" @click="openModal('refueling')"><Plus :size="18" /></button>
         </span>
-        <button class="secondary-button" title="Добавить транспорт" @click="emit('openVehicleModal')"><Plus :size="18" />Добавить транспорт</button>
-        <button class="secondary-button" title="Добавить АЗС" @click="emit('openStationModal')"><Plus :size="18" />Добавить АЗС</button>
+        <button class="secondary-button" title="Добавить транспорт" @click="openModal('vehicle')"><Plus :size="18" />Добавить транспорт</button>
+        <button class="secondary-button" title="Добавить АЗС" @click="openModal('station')"><Plus :size="18" />Добавить АЗС</button>
         <div class="visibility-menu">
-          <button class="icon-button" :class="{ active: refuelingControlsOpen }" title="Настроить заправки" type="button" @click="emit('toggleRefuelingControls')"><Eye :size="18" /></button>
+          <button class="icon-button" :class="{ active: refuelingControlsOpen }" title="Настроить заправки" type="button" @click="refuelingControlsOpen = !refuelingControlsOpen"><Eye :size="18" /></button>
           <RefuelingColumnSettings
             v-if="refuelingControlsOpen"
             :can-toggle-column="canToggleRefuelingColumn"
@@ -127,8 +110,8 @@ const searchModel = computed({
             :column-order="refuelingColumnOrder"
             :column-visibility="refuelingColumnVisibility"
             :refueling-visibility="refuelingVisibility"
-            @toggle-column="(key, checked) => emit('toggleRefuelingColumn', key, checked)"
-            @update-refueling-visibility="emit('updateRefuelingVisibility', $event)"
+            @toggle-column="toggleRefuelingColumn"
+            @update-refueling-visibility="Object.assign(refuelingVisibility, $event)"
           />
         </div>
       </div>
@@ -141,12 +124,12 @@ const searchModel = computed({
       :selected-count="selectedRefuelingCount"
       :stations="stations"
       :vehicles="vehicles"
-      @apply-station="emit('applyBulkRefuelingStation')"
-      @apply-vehicle="emit('applyBulkRefuelingVehicle')"
-      @clear="emit('clearRefuelingSelection')"
-      @delete="emit('requestBulkRefuelingDelete')"
-      @update-bulk-station-value="emit('updateBulkRefuelingStationValue', $event)"
-      @update-bulk-vehicle-value="emit('updateBulkRefuelingVehicleValue', $event)"
+      @apply-station="applyBulkRefuelingStation"
+      @apply-vehicle="applyBulkRefuelingVehicle"
+      @clear="clearRefuelingSelection"
+      @delete="requestBulkRefuelingDelete"
+      @update-bulk-station-value="bulkRefuelingStationValue = $event"
+      @update-bulk-vehicle-value="bulkRefuelingVehicleValue = $event"
     />
     <RefuelingTable
       :all-visible-selected="allVisibleRefuelingsSelected"
@@ -159,14 +142,14 @@ const searchModel = computed({
       :vehicle-by-id="vehicleById"
       :visible-column-ids="visibleRefuelingIds"
       :visible-columns="visibleRefuelingColumns"
-      @drop-column="emit('dropRefuelingColumn', $event)"
-      @finish-column-drag="emit('finishRefuelingColumnDrag')"
-      @remove="(id, label) => emit('removeRefueling', id, label)"
-      @start-column-drag="emit('startRefuelingColumnDrag', $event)"
-      @start-edit="emit('startEditRefueling', $event)"
-      @toggle-all="emit('toggleAllVisibleRefuelings', $event)"
-      @toggle-selection="(id, checked) => emit('toggleRefuelingSelection', id, checked)"
-      @toggle-sort="emit('toggleRefuelingSort', $event)"
+      @drop-column="dropRefuelingColumn"
+      @finish-column-drag="finishRefuelingColumnDrag"
+      @remove="(id, label) => remove('refueling', id, label)"
+      @start-column-drag="startRefuelingColumnDrag"
+      @start-edit="startEditRefueling"
+      @toggle-all="toggleAllVisibleRefuelings"
+      @toggle-selection="toggleRefuelingSelection"
+      @toggle-sort="toggleRefuelingSort"
     />
   </section>
 </template>
