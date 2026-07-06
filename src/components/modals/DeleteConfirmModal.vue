@@ -18,13 +18,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <BaseModal eyebrow="Подтверждение" title="Удалить запись" @close="emit('close')">
+  <BaseModal eyebrow="Подтверждение" title="Удалить запись" show-footer @close="emit('close')">
     <DeleteConfirmContent :label="label" />
     <p v-if="error" class="form-error modal-error">{{ error }}</p>
 
     <template #footer>
-      <button class="danger-button" type="button" :disabled="saving" @click="emit('close')">Отмена</button>
-      <button class="secondary-button" type="button" :disabled="saving" @click="emit('confirm')">
+      <button class="secondary-button" type="button" :disabled="saving" @click="emit('close')">Отмена</button>
+      <button class="danger-button" type="button" :disabled="saving" @click="emit('confirm')">
         <RefreshCw v-if="saving" class="spin" :size="17" />
         <Trash2 v-else :size="17" />
         Удалить

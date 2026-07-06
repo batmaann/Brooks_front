@@ -37,7 +37,7 @@ function numberOrNull(value: string) {
     <label>Категория<select :value="form.category ?? ''" @change="updateField('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>
     <label>Работа сервиса<input :value="form.service_operation" type="number" min="0" step="0.01" @input="updateField('service_operation', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Кэшбек<input :value="form.cashback" type="number" min="0" step="0.01" @input="updateField('cashback', Number(($event.target as HTMLInputElement).value))"></label>
-    <label class="full">Комментарий<textarea :value="form.comment" rows="3" placeholder="Необязательная заметка" @input="updateField('comment', ($event.target as HTMLTextAreaElement).value.trim())"></textarea></label>
+    <label class="full">Описание<textarea :value="form.description" rows="3" placeholder="Необязательное описание" @input="updateField('description', ($event.target as HTMLTextAreaElement).value.trim())"></textarea></label>
     <label class="check-field full"><input :checked="form.is_full_tank" type="checkbox" @change="updateField('is_full_tank', ($event.target as HTMLInputElement).checked)"><span><Check :size="16" />Полный бак</span></label>
   </form>
 </template>

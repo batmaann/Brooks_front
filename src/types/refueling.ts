@@ -26,7 +26,8 @@ export interface Refueling {
   fuel_type: FuelType | string | null
   is_full_tank: boolean | null
   cashback: string | null
-  comment: string
+  description: string
+  comment?: string
   transaction: number | null
   category: number | null
   is_complete: boolean
@@ -46,7 +47,7 @@ export interface RefuelingDraft {
   fuel_type: FuelType | string | null
   is_full_tank: boolean
   cashback: number
-  comment: string
+  description: string
   category?: number | null
   transaction?: number | null
 }

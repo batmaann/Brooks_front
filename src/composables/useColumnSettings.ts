@@ -1,11 +1,85 @@
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
-export function useColumnSettings<T extends string>(initialOrder: T[], initialVisibility: Record<T, boolean>) {
-  const columnOrder = shallowRef<T[]>([...initialOrder])
-  const columnVisibility = ref<Record<T, boolean>>({ ...initialVisibility })
+interface ColumnSettingsOptions {
+  storageKey?: string
+}
+
+interface StoredColumnSettings<T extends string> {
+  order: T[]
+  visibility: Record<T, boolean>
+}
+
+function canUseLocalStorage() {
+  return typeof localStorage !== 'undefined'
+}
+
+function readStoredColumnSettings<T extends string>(
+  storageKey: string | undefined,
+  initialOrder: T[],
+  initialVisibility: Record<T, boolean>,
+): StoredColumnSettings<T> {
+  const defaultSettings = {
+    order: [...initialOrder],
+    visibility: { ...initialVisibility },
+  }
+  if (!storageKey || !canUseLocalStorage()) return defaultSettings
+
+  try {
+    const storedValue = localStorage.getItem(storageKey)
+    if (!storedValue) return defaultSettings
+
+    const parsed = JSON.parse(storedValue) as Partial<StoredColumnSettings<T>>
+    const knownColumns = new Set(initialOrder)
+    const storedOrder = Array.isArray(parsed.order)
+      ? parsed.order.filter((key): key is T => knownColumns.has(key as T))
+      : []
+    const order = [...storedOrder, ...initialOrder.filter((key) => !storedOrder.includes(key))]
+    const visibility = { ...initialVisibility }
+
+    if (parsed.visibility && typeof parsed.visibility === 'object') {
+      initialOrder.forEach((key) => {
+        const value = parsed.visibility?.[key]
+        if (typeof value === 'boolean') visibility[key] = value
+      })
+    }
+
+    if (!Object.values(visibility).some(Boolean)) {
+      visibility[initialOrder[0]!] = true
+    }
+
+    return { order, visibility }
+  } catch {
+    return defaultSettings
+  }
+}
+
+function writeStoredColumnSettings<T extends string>(
+  storageKey: string | undefined,
+  settings: StoredColumnSettings<T>,
+) {
+  if (!storageKey || !canUseLocalStorage()) return
+
+  localStorage.setItem(storageKey, JSON.stringify(settings))
+}
+
+export function useColumnSettings<T extends string>(
+  initialOrder: T[],
+  initialVisibility: Record<T, boolean>,
+  options: ColumnSettingsOptions = {},
+) {
+  const storedSettings = readStoredColumnSettings(options.storageKey, initialOrder, initialVisibility)
+  const columnOrder = shallowRef<T[]>(storedSettings.order)
+  const columnVisibility = ref<Record<T, boolean>>(storedSettings.visibility)
   const draggedColumn = ref<T | null>(null)
 
   const visibleColumns = computed(() => columnOrder.value.filter((key) => columnVisibility.value[key]))
+
+  watch([columnOrder, columnVisibility], () => {
+    writeStoredColumnSettings(options.storageKey, {
+      order: columnOrder.value,
+      visibility: columnVisibility.value,
+    })
+  }, { deep: true })
 
   function startColumnDrag(key: T) {
     draggedColumn.value = key

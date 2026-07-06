@@ -4,6 +4,7 @@ import { useBulkSelection } from '@/composables/useBulkSelection'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useFormatters } from '@/composables/useFormatters'
 import { useSortableData } from '@/composables/useSortableData'
+import { useStoredVisibility } from '@/composables/useStoredVisibility'
 import type { useFinanceStore } from '@/stores/finance'
 import type { Transaction, TransactionDraft, TransactionPayload, TransactionType } from '@/types/finance'
 import type { TransactionSortKey } from '@/types/table'
@@ -66,7 +67,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
   const categoryEditForm = reactive({ name: '', description: '' })
   const bankLabelForm = reactive({ name: '', description: '' })
   const categoryForm = reactive({ name: '', description: '' })
-  const dashboardVisibility = reactive({ summary: true, addBank: true, addCategory: true })
+  const dashboardVisibility = useStoredVisibility('brooks.dashboard.visibility', { summary: true, addBank: true, addCategory: true })
   const transactionForm = reactive(defaultTransactionDraft())
   const transactionEditForm = reactive(defaultTransactionDraft())
   const editingTransactionId = ref<number | null>(null)
@@ -95,6 +96,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
       bank_label: true,
       description: true,
     },
+    { storageKey: 'brooks.dashboard.columns' },
   )
 
   const transactionIncome = computed(() => transactions.value

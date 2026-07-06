@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { useBulkSelection } from '@/composables/useBulkSelection'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useSortableData } from '@/composables/useSortableData'
+import { useStoredVisibility } from '@/composables/useStoredVisibility'
 import type { useFleetStore } from '@/stores/fleet'
 import type { GasStationPayload, Refueling, RefuelingPayload } from '@/types/refueling'
 import type { VehiclePayload } from '@/types/vehicle'
@@ -28,6 +29,7 @@ const refuelingColumnLabels: Record<RefuelingColumnKey, string> = {
   mileage: 'Пробег',
   fuel_quantity: 'Объем',
   is_full_tank: 'Полный бак',
+  description: 'Описание',
   cost: 'Стоимость',
 }
 
@@ -54,7 +56,7 @@ function defaultRefuelingForm(vehicle: number | null = null) {
     fuel_type: 'АИ-95',
     is_full_tank: true,
     cashback: 0,
-    comment: '',
+    description: '',
     category: null as number | null,
   }
 }
@@ -67,7 +69,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
   const { error, fleetStore, loadData, requestDelete, search, submit } = options
   const { refuelings, stations, vehicles } = storeToRefs(fleetStore)
 
-  const refuelingVisibility = reactive({ summary: true, vehicles: true, stations: true })
+  const refuelingVisibility = useStoredVisibility('brooks.refuelings.visibility', { summary: true, vehicles: true, stations: true })
   const vehicleForm = reactive(defaultVehicleForm())
   const refuelingForm = reactive(defaultRefuelingForm())
   const stationForm = reactive(defaultStationForm())
@@ -86,16 +88,18 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     toggleColumn: toggleRefuelingColumn,
     visibleColumns: visibleRefuelingColumns,
   } = useColumnSettings<RefuelingColumnKey>(
-    ['date', 'vehicle', 'station_fuel', 'mileage', 'fuel_quantity', 'is_full_tank', 'cost'],
+    ['date', 'vehicle', 'station_fuel', 'description', 'mileage', 'fuel_quantity', 'is_full_tank', 'cost'],
     {
       date: true,
       vehicle: true,
       station_fuel: true,
+      description: true,
       mileage: true,
       fuel_quantity: true,
       is_full_tank: true,
       cost: true,
     },
+    { storageKey: 'brooks.refuelings.columns' },
   )
 
   function vehicleById(id: number | null) {
@@ -110,6 +114,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     if (key === 'date') return new Date(`${item.date}T00:00:00`).getTime()
     if (key === 'vehicle') return vehicleById(item.vehicle)?.name || ''
     if (key === 'station_fuel') return `${stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || ''} ${item.fuel_type || ''}`
+    if (key === 'description') return item.description || item.comment || ''
     if (key === 'mileage') return Number(item.mileage || 0)
     if (key === 'fuel_quantity') return Number(item.fuel_quantity || 0)
     if (key === 'is_full_tank') return item.is_full_tank ? 1 : 0
@@ -135,7 +140,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     return sortedRefuelings.value.filter((item) => {
       const vehicle = vehicleById(item.vehicle)
       const station = stationById(item.gas_station)
-      return [vehicle?.name, station?.name, station?.company, item.fuel_type, item.date].some((value) => value?.toLowerCase().includes(query))
+      return [vehicle?.name, station?.name, station?.company, item.fuel_type, item.description, item.comment, item.date].some((value) => value?.toLowerCase().includes(query))
     })
   })
   const filteredStations = computed(() => {
@@ -196,7 +201,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
       fuel_type: item.fuel_type || 'АИ-95',
       is_full_tank: Boolean(item.is_full_tank),
       cashback: Number(item.cashback || 0),
-      comment: item.comment || '',
+      description: item.description || item.comment || '',
       category: item.category,
     })
   }

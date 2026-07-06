@@ -35,6 +35,7 @@ const {
       <td v-if="columnKey === 'date'"><span class="date-cell"><CalendarDays :size="16" />{{ formatDate(item.date) }}</span></td>
       <td v-else-if="columnKey === 'vehicle'"><strong>{{ vehicleById(item.vehicle)?.name || '—' }}</strong><small v-if="!item.is_complete">Нужно дополнить</small></td>
       <td v-else-if="columnKey === 'station_fuel'"><strong>{{ stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || 'Не указана' }}</strong><small>{{ item.fuel_type || '—' }} · {{ optionalCurrency(item.price_per_liter) }}/л</small></td>
+      <td v-else-if="columnKey === 'description'"><span class="transaction-description">{{ item.description || item.comment || '—' }}</span></td>
       <td v-else-if="columnKey === 'mileage'">{{ optionalNumber(item.mileage, ' км') }}</td>
       <td v-else-if="columnKey === 'fuel_quantity'">{{ optionalNumber(item.fuel_quantity, ' л', 2) }}</td>
       <td v-else-if="columnKey === 'is_full_tank'"><span class="status" :class="{ inactive: !item.is_full_tank }"><i></i>{{ item.is_full_tank ? 'Да' : 'Нет' }}</span></td>
