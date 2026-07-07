@@ -7,8 +7,9 @@ import RefuelingColumnSettings from '@/components/refuelings/RefuelingColumnSett
 import RefuelingSummary from '@/components/refuelings/RefuelingSummary.vue'
 import RefuelingTable from '@/components/refuelings/RefuelingTable.vue'
 import VehiclePanel from '@/components/refuelings/VehiclePanel.vue'
-import { useFleetWorkspaceContext, useWorkspaceModalsContext, useWorkspaceUiContext } from '@/composables/useWorkspaceContext'
+import { useFinanceWorkspaceContext, useFleetWorkspaceContext, useWorkspaceModalsContext, useWorkspaceUiContext } from '@/composables/useWorkspaceContext'
 
+const finance = useFinanceWorkspaceContext()
 const fleet = useFleetWorkspaceContext()
 const modals = useWorkspaceModalsContext()
 const ui = useWorkspaceUiContext()
@@ -51,6 +52,7 @@ const {
   visibleRefuelingColumns,
   visibleRefuelingIds,
 } = fleet
+const { categoryById } = finance
 const { openModal, remove, startEditRefueling } = modals
 const { saving, search } = ui
 
@@ -133,6 +135,7 @@ const searchModel = computed({
     />
     <RefuelingTable
       :all-visible-selected="allVisibleRefuelingsSelected"
+      :category-by-id="categoryById"
       :dragged-column="draggedRefuelingColumn"
       :is-selected="isRefuelingSelected"
       :refueling-column-labels="refuelingColumnLabels"

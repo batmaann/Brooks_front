@@ -190,6 +190,12 @@ td .icon-button { width: 32px; height: 32px; }
 .bank-label-pane input, .bank-label-pane select, .bank-label-pane textarea { width: 100%; min-width: 0; }
 .bank-label-pane button { width: 100%; }
 .modal .full { grid-column: 1 / -1; }
+.odometer-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.segmented-control { min-height: 42px; padding: 3px; display: inline-grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; border: 1px solid #d7dfdb; border-radius: 6px; background: #eef2f0; }
+.segmented-control button { min-width: 0; height: 34px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 4px; color: #53605a; background: transparent; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.segmented-control button:hover { color: var(--ink); background: #e4eae7; }
+.segmented-control button.active { color: var(--green); background: white; box-shadow: 0 1px 4px rgba(22, 44, 35, .12); }
+.segmented-control svg { flex: 0 0 auto; }
 .modal footer { justify-content: flex-end; border-top: 1px solid var(--line); background: #fafbfa; }
 .modal-error { padding: 0 22px 16px; }
 .about-content { padding: 22px; display: grid; gap: 12px; color: var(--muted); line-height: 1.55; }
@@ -267,6 +273,10 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .station-list article { border-color: #26332f; }
 [data-theme="dark"] th,
 [data-theme="dark"] .modal footer { background: #111a17; }
+[data-theme="dark"] .segmented-control { background: #202b27; border-color: #394842; }
+[data-theme="dark"] .segmented-control button { color: #aebbb5; }
+[data-theme="dark"] .segmented-control button:hover { color: var(--ink); background: #1b2a25; }
+[data-theme="dark"] .segmented-control button.active { color: #78e0a8; background: #111a17; box-shadow: none; }
 [data-theme="dark"] .fleet-ring { background: radial-gradient(circle, var(--surface) 58%, transparent 60%), conic-gradient(var(--green) 0 78%, #33423d 78% 100%); }
 [data-theme="dark"] .metric-icon.green,
 [data-theme="dark"] .activity-icon,

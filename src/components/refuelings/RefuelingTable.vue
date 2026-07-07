@@ -2,12 +2,14 @@
 import { ChevronDown, ChevronUp, Fuel } from '@lucide/vue'
 import RefuelingRow from '@/components/refuelings/RefuelingRow.vue'
 import type { SortDirection } from '@/types/common'
+import type { Category } from '@/types/finance'
 import type { GasStation, Refueling } from '@/types/refueling'
 import type { RefuelingColumnKey } from '@/types/table'
 import type { Vehicle } from '@/types/vehicle'
 
 interface Props {
   allVisibleSelected: boolean
+  categoryById: (id: number | null) => Category | undefined
   draggedColumn: RefuelingColumnKey | null
   isSelected: (id: number) => boolean
   refuelingColumnLabels: Record<RefuelingColumnKey, string>
@@ -52,6 +54,7 @@ const emit = defineEmits<{
           <RefuelingRow
             v-for="item in refuelings"
             :key="item.id"
+            :category-by-id="categoryById"
             :item="item"
             :selected="isSelected(item.id)"
             :station-by-id="stationById"

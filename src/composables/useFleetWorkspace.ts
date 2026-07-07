@@ -26,8 +26,13 @@ const refuelingColumnLabels: Record<RefuelingColumnKey, string> = {
   date: 'Дата',
   vehicle: 'Транспорт',
   station_fuel: 'АЗС / топливо',
+  category: 'Категория',
+  odometer: 'Одометр',
   mileage: 'Пробег',
   fuel_quantity: 'Объем',
+  price_per_liter: 'Цена/л',
+  service_operation: 'Сервис',
+  cashback: 'Кэшбек',
   is_full_tank: 'Полный бак',
   description: 'Описание',
   cost: 'Стоимость',
@@ -48,7 +53,8 @@ function defaultRefuelingForm(vehicle: number | null = null) {
   return {
     vehicle,
     date: new Date().toISOString().slice(0, 10),
-    mileage: 0,
+    odometer_value: 0,
+    odometer_value_type: 'auto' as const,
     fuel_quantity: 0,
     price_per_liter: 0,
     service_operation: 0,
@@ -88,14 +94,19 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     toggleColumn: toggleRefuelingColumn,
     visibleColumns: visibleRefuelingColumns,
   } = useColumnSettings<RefuelingColumnKey>(
-    ['date', 'vehicle', 'station_fuel', 'description', 'mileage', 'fuel_quantity', 'is_full_tank', 'cost'],
+    ['date', 'vehicle', 'station_fuel', 'category', 'description', 'odometer', 'mileage', 'fuel_quantity', 'price_per_liter', 'service_operation', 'cashback', 'is_full_tank', 'cost'],
     {
       date: true,
       vehicle: true,
       station_fuel: true,
+      category: false,
       description: true,
+      odometer: false,
       mileage: true,
       fuel_quantity: true,
+      price_per_liter: false,
+      service_operation: false,
+      cashback: false,
       is_full_tank: true,
       cost: true,
     },
@@ -114,9 +125,14 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     if (key === 'date') return new Date(`${item.date}T00:00:00`).getTime()
     if (key === 'vehicle') return vehicleById(item.vehicle)?.name || ''
     if (key === 'station_fuel') return `${stationById(item.gas_station)?.company || stationById(item.gas_station)?.name || ''} ${item.fuel_type || ''}`
+    if (key === 'category') return item.category || 0
     if (key === 'description') return item.description || item.comment || ''
+    if (key === 'odometer') return Number(item.odometer_reading || item.odometer || 0)
     if (key === 'mileage') return Number(item.mileage || 0)
     if (key === 'fuel_quantity') return Number(item.fuel_quantity || 0)
+    if (key === 'price_per_liter') return Number(item.price_per_liter || 0)
+    if (key === 'service_operation') return Number(item.service_operation || 0)
+    if (key === 'cashback') return Number(item.cashback || 0)
     if (key === 'is_full_tank') return item.is_full_tank ? 1 : 0
     return Number(item.effective_cost || item.total_cost || 0)
   }
@@ -193,7 +209,8 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     Object.assign(refuelingForm, {
       vehicle: item.vehicle,
       date: item.date,
-      mileage: item.mileage ?? 0,
+      odometer_value: item.odometer_reading ?? item.odometer ?? item.mileage ?? 0,
+      odometer_value_type: 'odometer_reading',
       fuel_quantity: item.fuel_quantity === null ? 0 : Number(item.fuel_quantity),
       price_per_liter: item.price_per_liter === null ? 0 : Number(item.price_per_liter),
       service_operation: Number(item.service_operation || 0),

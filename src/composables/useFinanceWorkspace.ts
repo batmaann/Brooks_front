@@ -114,6 +114,10 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     return sections.value.find((section) => section.id === id)
   }
 
+  function categoryById(id: number | null) {
+    return categories.value.find((category) => category.id === id)
+  }
+
   function sectionName(id: number | null) {
     return sectionById(id)?.name || '—'
   }
@@ -359,6 +363,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     cancelCreateTransaction,
     cancelEditTransaction,
     categories,
+    categoryById,
     categoryEditForm,
     categoryForm,
     clearTransactionSelection,

@@ -42,6 +42,8 @@
   .fleet-legend { width: 100%; }
   .modal form { grid-template-columns: 1fr; }
   .modal form label { grid-column: 1; }
+  .odometer-field { grid-template-columns: 1fr; }
+  .segmented-control { width: 100%; }
 }
 
 @media (max-width: 460px) {

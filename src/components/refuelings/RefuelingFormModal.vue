@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check } from '@lucide/vue'
+import { Check, Gauge, Route, Wand2 } from '@lucide/vue'
 import type { Category } from '@/types/finance'
 import type { GasStation, RefuelingDraft } from '@/types/refueling'
 import type { Vehicle } from '@/types/vehicle'
@@ -23,13 +23,24 @@ function updateField<K extends keyof RefuelingDraft>(field: K, value: RefuelingD
 function numberOrNull(value: string) {
   return value === '' ? null : Number(value)
 }
+
+function updateOdometerMode(value: RefuelingDraft['odometer_value_type']) {
+  updateField('odometer_value_type', value)
+}
 </script>
 
 <template>
   <form id="refueling-form" @submit.prevent="emit('submit')">
     <label class="full">Транспорт<select :value="form.vehicle ?? ''" required @change="updateField('vehicle', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="" disabled>Выберите транспорт</option><option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }}</option></select></label>
     <label>Дата<input :value="form.date" required type="date" @input="updateField('date', ($event.target as HTMLInputElement).value)"></label>
-    <label>Пробег с прошлой заправки<input :value="form.mileage" required type="number" min="1" max="5000" @input="updateField('mileage', Number(($event.target as HTMLInputElement).value))"></label>
+    <div class="odometer-field full">
+      <label>Пробег / одометр<input :value="form.odometer_value" required type="number" min="1" @input="updateField('odometer_value', Number(($event.target as HTMLInputElement).value))"></label>
+      <div class="segmented-control" role="radiogroup" aria-label="Тип значения пробега">
+        <button type="button" :class="{ active: form.odometer_value_type === 'auto' }" title="Авто" role="radio" :aria-checked="form.odometer_value_type === 'auto'" @click="updateOdometerMode('auto')"><Wand2 :size="15" />Авто</button>
+        <button type="button" :class="{ active: form.odometer_value_type === 'mileage' }" title="Пробег" role="radio" :aria-checked="form.odometer_value_type === 'mileage'" @click="updateOdometerMode('mileage')"><Route :size="15" />Пробег</button>
+        <button type="button" :class="{ active: form.odometer_value_type === 'odometer_reading' }" title="Одометр" role="radio" :aria-checked="form.odometer_value_type === 'odometer_reading'" @click="updateOdometerMode('odometer_reading')"><Gauge :size="15" />Одометр</button>
+      </div>
+    </div>
     <label>Количество, л<input :value="form.fuel_quantity" required type="number" min="0.01" step="0.01" @input="updateField('fuel_quantity', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Цена за литр<input :value="form.price_per_liter" required type="number" min="0.01" step="0.01" @input="updateField('price_per_liter', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Тип топлива<select :value="form.fuel_type || ''" @change="updateField('fuel_type', ($event.target as HTMLSelectElement).value)"><option v-for="fuelType in ['АИ-92', 'АИ-95', 'АИ-98', 'ДТ', 'ГАЗ']" :key="fuelType">{{ fuelType }}</option></select></label>
