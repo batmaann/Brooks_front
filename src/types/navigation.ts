@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
 
 export type AppView = 'dashboard' | 'refuelings'
-export type FutureView = 'savings' | 'investments' | 'utilities' | 'business'
+export type FutureView = 'savings' | 'investments' | 'utilities' | 'business' | 'cryptocurrency'
 
 export interface NavItem {
   id: AppView | FutureView
@@ -9,4 +9,3 @@ export interface NavItem {
   icon: Component
   disabled: boolean
 }
-

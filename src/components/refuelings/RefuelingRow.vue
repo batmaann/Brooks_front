@@ -40,7 +40,7 @@ const {
       <td v-else-if="columnKey === 'category'">{{ categoryById(item.category)?.name || '—' }}</td>
       <td v-else-if="columnKey === 'description'"><span class="transaction-description">{{ item.description || item.comment || '—' }}</span></td>
       <td v-else-if="columnKey === 'odometer'">{{ optionalNumber(item.odometer_reading ?? item.odometer, ' км') }}</td>
-      <td v-else-if="columnKey === 'mileage'">{{ optionalNumber(item.mileage, ' км') }}</td>
+      <td v-else-if="columnKey === 'distance'">{{ optionalNumber(item.distance, ' км') }}</td>
       <td v-else-if="columnKey === 'fuel_quantity'">{{ optionalNumber(item.fuel_quantity, ' л', 2) }}</td>
       <td v-else-if="columnKey === 'price_per_liter'">{{ optionalCurrency(item.price_per_liter) }}</td>
       <td v-else-if="columnKey === 'service_operation'">{{ optionalCurrency(item.service_operation) }}</td>

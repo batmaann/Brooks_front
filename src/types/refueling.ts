@@ -1,5 +1,4 @@
 export type FuelType = 'АИ-92' | 'АИ-95' | 'АИ-98' | 'ДТ' | 'ГАЗ'
-export type OdometerValueType = 'auto' | 'mileage' | 'odometer_reading'
 
 export interface GasStation {
   id: number
@@ -12,7 +11,7 @@ export interface GasStation {
 export interface Refueling {
   id: number
   date: string
-  mileage: number | null
+  distance: number | null
   odometer_reading: number | null
   month: number | null
   quarter: number | null
@@ -41,8 +40,7 @@ export interface Refueling {
 export interface RefuelingDraft {
   vehicle: number | null
   date: string
-  odometer_value: number
-  odometer_value_type: OdometerValueType
+  odometer_reading: number
   fuel_quantity: number
   price_per_liter: number
   service_operation: number
@@ -58,4 +56,3 @@ export interface RefuelingDraft {
 export type RefuelingPayload = Partial<RefuelingDraft>
 
 export type GasStationPayload = Omit<GasStation, 'id'>
-

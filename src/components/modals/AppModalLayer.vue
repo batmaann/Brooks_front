@@ -34,7 +34,9 @@ const {
 const {
   createStation,
   createVehicle,
+  editingRefuelingId,
   refuelingForm,
+  refuelings,
   saveRefueling,
   stationForm,
   stations,
@@ -72,7 +74,17 @@ const { error, saving } = ui
     @close="closeModal"
   >
     <VehicleFormModal v-if="modal === 'vehicle'" :form="vehicleForm" @submit="createVehicle" @update:form="Object.assign(vehicleForm, $event)" />
-    <RefuelingFormModal v-if="modal === 'refueling'" :categories="categories" :form="refuelingForm" :stations="stations" :vehicles="vehicles" @submit="saveRefueling" @update:form="Object.assign(refuelingForm, $event)" />
+    <RefuelingFormModal
+      v-if="modal === 'refueling'"
+      :categories="categories"
+      :editing-refueling-id="editingRefuelingId"
+      :form="refuelingForm"
+      :refuelings="refuelings"
+      :stations="stations"
+      :vehicles="vehicles"
+      @submit="saveRefueling"
+      @update:form="Object.assign(refuelingForm, $event)"
+    />
     <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="createStation" @update:form="Object.assign(stationForm, $event)" />
     <BankLabelModal
       v-if="modal === 'bankLabel'"

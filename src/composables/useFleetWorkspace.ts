@@ -28,7 +28,7 @@ const refuelingColumnLabels: Record<RefuelingColumnKey, string> = {
   station_fuel: 'АЗС / топливо',
   category: 'Категория',
   odometer: 'Одометр',
-  mileage: 'Пробег',
+  distance: 'Дистанция',
   fuel_quantity: 'Объем',
   price_per_liter: 'Цена/л',
   service_operation: 'Сервис',
@@ -53,8 +53,7 @@ function defaultRefuelingForm(vehicle: number | null = null) {
   return {
     vehicle,
     date: new Date().toISOString().slice(0, 10),
-    odometer_value: 0,
-    odometer_value_type: 'auto' as const,
+    odometer_reading: 0,
     fuel_quantity: 0,
     price_per_liter: 0,
     service_operation: 0,
@@ -94,7 +93,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     toggleColumn: toggleRefuelingColumn,
     visibleColumns: visibleRefuelingColumns,
   } = useColumnSettings<RefuelingColumnKey>(
-    ['date', 'vehicle', 'station_fuel', 'category', 'description', 'odometer', 'mileage', 'fuel_quantity', 'price_per_liter', 'service_operation', 'cashback', 'is_full_tank', 'cost'],
+    ['date', 'vehicle', 'station_fuel', 'category', 'description', 'odometer', 'distance', 'fuel_quantity', 'price_per_liter', 'service_operation', 'cashback', 'is_full_tank', 'cost'],
     {
       date: true,
       vehicle: true,
@@ -102,7 +101,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
       category: false,
       description: true,
       odometer: false,
-      mileage: true,
+      distance: true,
       fuel_quantity: true,
       price_per_liter: false,
       service_operation: false,
@@ -128,7 +127,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     if (key === 'category') return item.category || 0
     if (key === 'description') return item.description || item.comment || ''
     if (key === 'odometer') return Number(item.odometer_reading || item.odometer || 0)
-    if (key === 'mileage') return Number(item.mileage || 0)
+    if (key === 'distance') return Number(item.distance || 0)
     if (key === 'fuel_quantity') return Number(item.fuel_quantity || 0)
     if (key === 'price_per_liter') return Number(item.price_per_liter || 0)
     if (key === 'service_operation') return Number(item.service_operation || 0)
@@ -209,8 +208,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     Object.assign(refuelingForm, {
       vehicle: item.vehicle,
       date: item.date,
-      odometer_value: item.odometer_reading ?? item.odometer ?? item.mileage ?? 0,
-      odometer_value_type: 'odometer_reading',
+      odometer_reading: item.odometer_reading ?? item.odometer ?? 0,
       fuel_quantity: item.fuel_quantity === null ? 0 : Number(item.fuel_quantity),
       price_per_liter: item.price_per_liter === null ? 0 : Number(item.price_per_liter),
       service_operation: Number(item.service_operation || 0),

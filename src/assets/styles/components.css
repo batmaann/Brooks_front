@@ -1,11 +1,7 @@
 .brand-mark { width: 52px; height: 52px; display: grid; place-items: center; background: #d5ed52; color: #173a2f; border-radius: 8px; position: relative; z-index: 1; }
 .brand-mark.small { width: 36px; height: 36px; border-radius: 6px; }
-.gold-bag-icon { width: 30px; height: 30px; display: block; }
-.brand-mark.small .gold-bag-icon { width: 23px; height: 23px; }
-.bag-body, .bag-neck { fill: currentColor; }
-.bag-tie, .bag-dollar { fill: none; stroke: #173a2f; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-.bag-tie { stroke: #d5ed52; }
-.bag-coin { fill: #f3c63d; stroke: #173a2f; stroke-width: 1.7; }
+.brand-ruble { font-family: 'Manrope', Arial, sans-serif; font-size: 34px; font-weight: 900; line-height: 1; transform: translateY(-1px); }
+.brand-mark.small .brand-ruble { font-size: 25px; }
 .auth-copy { position: relative; z-index: 1; max-width: 590px; }
 .eyebrow { color: #71807a; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; }
 .auth-copy .eyebrow { color: #b4d0c4; }
@@ -190,7 +186,11 @@ td .icon-button { width: 32px; height: 32px; }
 .bank-label-pane input, .bank-label-pane select, .bank-label-pane textarea { width: 100%; min-width: 0; }
 .bank-label-pane button { width: 100%; }
 .modal .full { grid-column: 1 / -1; }
-.odometer-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.odometer-field { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 12px; }
+.readonly-input { color: #64716b; background: #f4f7f5; cursor: default; }
+.readonly-input:focus { border-color: #ccd5d1; box-shadow: none; }
+.readonly-input.invalid { color: #9f1d26; background: #fff1f2; border-color: #e08a91; }
+.readonly-input.invalid:focus { border-color: #e08a91; }
 .segmented-control { min-height: 42px; padding: 3px; display: inline-grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; border: 1px solid #d7dfdb; border-radius: 6px; background: #eef2f0; }
 .segmented-control button { min-width: 0; height: 34px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 4px; color: #53605a; background: transparent; font-size: 12px; font-weight: 800; white-space: nowrap; }
 .segmented-control button:hover { color: var(--ink); background: #e4eae7; }
@@ -233,6 +233,8 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea { color: var(--ink); background: #111a17; border-color: #35443f; }
+[data-theme="dark"] .readonly-input { color: #91a09a; background: #17211d; border-color: #35443f; }
+[data-theme="dark"] .readonly-input.invalid { color: #ff9ca4; background: #2c171b; border-color: #8d3c45; }
 [data-theme="dark"] .visibility-dropdown { background: #151f1c; border-color: var(--line); box-shadow: 0 18px 44px rgba(0, 0, 0, .42); }
 [data-theme="dark"] .visibility-dropdown label { color: var(--ink); }
 [data-theme="dark"] .visibility-dropdown label.disabled:hover { background: #202b27; color: var(--muted); }
