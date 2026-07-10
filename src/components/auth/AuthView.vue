@@ -1,0 +1,84 @@
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { ChevronRight, RefreshCw, WalletCards } from '@lucide/vue'
+import { ApiError } from '@/api'
+import AboutModal from '@/components/modals/AboutModal.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const authMode = ref<'login' | 'register'>('login')
+const authForm = reactive({ username: '', password: '', phone: '' })
+const authError = ref('')
+const authLoading = ref(false)
+const aboutOpen = ref(false)
+
+async function authenticate() {
+  authLoading.value = true
+  authError.value = ''
+  try {
+    if (authMode.value === 'login') {
+      await authStore.login({ username: authForm.username, password: authForm.password })
+    } else {
+      await authStore.register({ username: authForm.username, password: authForm.password, phone: authForm.phone })
+    }
+  } catch (requestError) {
+    authError.value = requestError instanceof ApiError ? requestError.message : 'Сервис временно недоступен'
+  } finally {
+    authLoading.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="auth-layout">
+    <section class="auth-brand">
+      <div class="brand-mark"><span class="brand-ruble">₽</span></div>
+      <div class="auth-copy">
+        <p class="eyebrow">Учет без лишнего шума</p>
+        <h1 class="auth-logo-title">Brooks</h1>
+        <p>Все финансы в одном месте: доходы, расходы, накопления и повседневные операции под вашим контролем.</p>
+      </div>
+      <div class="auth-brand-footer">
+        <div class="auth-feature">
+          <WalletCards :size="26" />
+          <div>
+            <strong>Полная картина</strong>
+            <span>Доходы, расходы, накопления и регулярные платежи</span>
+          </div>
+        </div>
+        <button class="auth-about-link" type="button" @click="aboutOpen = true">О нас</button>
+      </div>
+    </section>
+
+    <main class="auth-panel">
+      <form class="auth-form" @submit.prevent="authenticate">
+        <div>
+          <p class="eyebrow">{{ authMode === 'login' ? 'С возвращением' : 'Новый аккаунт' }}</p>
+          <h2>{{ authMode === 'login' ? 'Войти в Brooks' : 'Создать аккаунт' }}</h2>
+        </div>
+        <label>
+          Имя пользователя
+          <input v-model.trim="authForm.username" required autocomplete="username" placeholder="Введите логин">
+        </label>
+        <label>
+          Пароль
+          <input v-model="authForm.password" required minlength="8" type="password" autocomplete="current-password" placeholder="Не менее 8 символов">
+        </label>
+        <label v-if="authMode === 'register'">
+          Телефон
+          <input v-model.trim="authForm.phone" required type="tel" autocomplete="tel" placeholder="+7 999 000-00-00">
+        </label>
+        <p v-if="authError" class="form-error">{{ authError }}</p>
+        <button class="primary-button wide" type="submit" :disabled="authLoading">
+          <RefreshCw v-if="authLoading" class="spin" :size="18" />
+          <span>{{ authMode === 'login' ? 'Войти' : 'Зарегистрироваться' }}</span>
+          <ChevronRight v-if="!authLoading" :size="18" />
+        </button>
+        <button class="text-button" type="button" @click="authMode = authMode === 'login' ? 'register' : 'login'">
+          {{ authMode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти' }}
+        </button>
+      </form>
+    </main>
+    <AboutModal v-if="aboutOpen" @close="aboutOpen = false" />
+  </div>
+</template>
