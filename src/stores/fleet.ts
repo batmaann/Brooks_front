@@ -87,4 +87,3 @@ export const useFleetStore = defineStore('fleet', () => {
     vehicles,
   }
 })
-

@@ -53,4 +53,3 @@ const bulkSectionModel = computed({
     <button class="text-button" type="button" :disabled="saving" @click="emit('clear')">Сбросить</button>
   </div>
 </template>
-

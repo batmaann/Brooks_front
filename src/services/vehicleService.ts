@@ -16,4 +16,3 @@ export function createVehicle(payload: VehiclePayload) {
 export function deleteVehicle(id: number) {
   return api<void>(`/vehicle/${id}/`, { method: 'DELETE' })
 }
-

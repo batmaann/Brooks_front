@@ -26,4 +26,3 @@ export function register(payload: RegisterPayload) {
     body: JSON.stringify(payload),
   })
 }
-

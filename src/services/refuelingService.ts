@@ -38,4 +38,3 @@ export function createGasStation(payload: GasStationPayload) {
 export function deleteGasStation(id: number) {
   return api<void>(`/gasStation/${id}/`, { method: 'DELETE' })
 }
-

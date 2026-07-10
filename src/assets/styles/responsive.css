@@ -10,7 +10,7 @@
 @media (max-width: 760px) {
   .auth-layout { grid-template-columns: 1fr; }
   .auth-brand { min-height: 290px; padding: 28px; }
-  .auth-copy h1 { font-size: 58px; }
+  .auth-logo-title { font-size: 58px; }
   .auth-copy > p:last-child { margin-top: 16px; font-size: 15px; }
   .auth-feature { display: none; }
   .auth-panel { padding: 36px 24px; }
@@ -26,9 +26,12 @@
   .topbar h1 { font-size: 20px; }
   .topbar-actions .primary-button { width: 40px; padding: 0; font-size: 0; }
   .content { padding: 20px 16px 40px; }
+  .section-heading { flex-wrap: wrap; }
   .management-actions { width: 100%; flex-wrap: wrap; }
   .management-actions .secondary-button { flex: 1 1 150px; }
   .finance-heading-main { width: 100%; flex-wrap: wrap; }
+  .finance-heading-actions { width: 100%; justify-content: flex-start; }
+  .finance-heading-actions .secondary-button { flex: 1 1 150px; }
   .transaction-search { width: 100%; max-width: none; flex-basis: 100%; }
   .compact-grid { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
@@ -53,7 +56,7 @@
   .metric:last-child { border-bottom: 0; }
   .activity-row { grid-template-columns: 38px 1fr; }
   .activity-value { grid-column: 2; text-align: left; padding-bottom: 10px; }
-  .section-heading { align-items: center; }
+  .section-heading { align-items: stretch; }
   .modal-backdrop { padding: 0; }
   .modal { max-height: 100vh; min-height: 100vh; border-radius: 0; }
 }

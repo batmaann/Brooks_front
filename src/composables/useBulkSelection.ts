@@ -46,4 +46,3 @@ export function useBulkSelection(visibleIds: ComputedRef<number[]>) {
     toggleSelection,
   }
 }
-

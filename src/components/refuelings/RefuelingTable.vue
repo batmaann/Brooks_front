@@ -70,4 +70,3 @@ const emit = defineEmits<{
     <div v-if="!refuelings.length" class="empty-state"><Fuel :size="28" /><strong>Записи не найдены</strong></div>
   </div>
 </template>
-

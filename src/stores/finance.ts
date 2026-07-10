@@ -114,4 +114,3 @@ export const useFinanceStore = defineStore('finance', () => {
     updateTransaction,
   }
 })
-

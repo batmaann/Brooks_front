@@ -77,4 +77,3 @@ export interface TransactionPayload {
 
 export type CategoryPayload = Pick<Category, 'name' | 'description'>
 export type BankLabelPayload = Pick<BankLabel, 'name' | 'description'>
-

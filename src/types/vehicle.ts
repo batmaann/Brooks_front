@@ -18,4 +18,3 @@ export interface VehiclePayload {
   initial_odometer: number
   is_active: boolean
 }
-
