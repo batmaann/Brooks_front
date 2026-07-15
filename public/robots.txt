@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://brooks.fsbforever.ru/sitemap.xml
