@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Check, X } from '@lucide/vue'
+import DecimalInput from '@/components/ui/DecimalInput.vue'
 import type { BankLabel, Category, Section, TransactionDraft, TransactionType } from '@/types/finance'
 import type { TransactionSortKey } from '@/types/table'
 
@@ -40,7 +41,7 @@ function numberOrNull(value: string) {
       <td v-else-if="columnKey === 'transaction_type'"><select :value="form.transaction_type" @change="updateForm('transaction_type', ($event.target as HTMLSelectElement).value as TransactionType)"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
       <td v-else-if="columnKey === 'section'"><select :value="form.section ?? ''" @change="updateForm('section', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
       <td v-else-if="columnKey === 'category'"><select :value="form.category ?? ''" @change="updateForm('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
-      <td v-else-if="columnKey === 'amount'"><input :value="form.amount" required type="number" min="0.01" step="0.01" @input="updateForm('amount', Number(($event.target as HTMLInputElement).value))"></td>
+      <td v-else-if="columnKey === 'amount'"><DecimalInput :model-value="form.amount" required :min="0.01" @update:model-value="updateForm('amount', $event)" /></td>
       <td v-else-if="columnKey === 'bank_label'"><select :value="form.bank_label ?? ''" @change="updateForm('bank_label', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
       <td v-else><input :value="form.description" placeholder="Описание" @input="updateForm('description', ($event.target as HTMLInputElement).value.trim())"></td>
     </template>

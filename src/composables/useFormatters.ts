@@ -9,7 +9,10 @@ export function useFormatters() {
   }
 
   function number(value: number | string | null | undefined, digits = 0) {
-    return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }).format(Number(value || 0))
+    return new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(Number(value || 0))
   }
 
   function optionalNumber(value: number | string | null | undefined, suffix = '', digits = 0) {
