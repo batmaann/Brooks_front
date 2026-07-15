@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Trash2 } from '@lucide/vue'
+import type { Category } from '@/types/finance'
 import type { GasStation } from '@/types/refueling'
 import type { Vehicle } from '@/types/vehicle'
 
 interface Props {
+  bulkCategoryValue: string
   bulkStationValue: string
   bulkVehicleValue: string
+  categories: Category[]
   saving: boolean
   selectedCount: number
   stations: GasStation[]
@@ -16,13 +19,20 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  applyCategory: []
   applyStation: []
   applyVehicle: []
   clear: []
   delete: []
+  updateBulkCategoryValue: [value: string]
   updateBulkStationValue: [value: string]
   updateBulkVehicleValue: [value: string]
 }>()
+
+const bulkCategoryModel = computed({
+  get: () => props.bulkCategoryValue,
+  set: (value: string) => emit('updateBulkCategoryValue', value),
+})
 
 const bulkVehicleModel = computed({
   get: () => props.bulkVehicleValue,
@@ -38,6 +48,12 @@ const bulkStationModel = computed({
 <template>
   <div v-if="selectedCount" class="bulk-actions">
     <strong>{{ selectedCount }} выбрано</strong>
+    <select v-model="bulkCategoryModel">
+      <option value="">Категория</option>
+      <option value="__clear__">Без категории</option>
+      <option v-for="category in categories" :key="category.id" :value="String(category.id)">{{ category.name }}</option>
+    </select>
+    <button class="secondary-button" type="button" :disabled="saving || !bulkCategoryValue" @click="emit('applyCategory')">Проставить категорию</button>
     <select v-model="bulkVehicleModel">
       <option value="">Транспорт</option>
       <option v-for="vehicle in vehicles" :key="vehicle.id" :value="String(vehicle.id)">{{ vehicle.name }}</option>

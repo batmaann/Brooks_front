@@ -156,7 +156,9 @@ td .icon-button { width: 32px; height: 32px; }
 .refueling-incomplete-row strong { color: #424d48; }
 .refueling-incomplete-row small { color: #7a8580; font-weight: 800; }
 .station-list { background: white; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.station-list article { min-height: 82px; padding: 15px 18px; display: grid; grid-template-columns: 42px minmax(180px, 1fr) minmax(220px, 1fr) 38px; align-items: center; gap: 15px; border-bottom: 1px solid #edf0ef; }
+.station-list article { min-height: 82px; padding: 15px 18px; display: grid; grid-template-columns: 42px minmax(180px, 1fr) minmax(220px, 1fr) 76px; align-items: center; gap: 15px; border-bottom: 1px solid #edf0ef; }
+.station-actions { display: flex; gap: 6px; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
+.station-list article:hover .station-actions, .station-list article:focus-within .station-actions { opacity: 1; pointer-events: auto; }
 .station-icon { width: 40px; height: 40px; display: grid; place-items: center; color: #8a6517; background: #fbf1d5; border-radius: 6px; }
 .station-address { color: var(--muted); font-size: 12px; }
 .add-row { width: 100%; min-height: 54px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; color: var(--green); background: #f9fbfa; font-weight: 800; font-size: 12px; }
@@ -169,7 +171,7 @@ td .icon-button { width: 32px; height: 32px; }
 .compact-heading { min-height: auto; }
 .compact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .compact-grid .vehicle-card, .compact-grid .add-card { min-height: 220px; }
-.compact-station-list article { grid-template-columns: 42px minmax(150px, 1fr) 38px; }
+.compact-station-list article { grid-template-columns: 42px minmax(150px, 1fr) 76px; }
 .compact-station-list .station-address { grid-column: 2 / 3; }
 .empty-state { min-height: 180px; display: grid; place-content: center; justify-items: center; gap: 8px; color: #83908a; text-align: center; }
 .empty-state strong { color: #4a5550; font-size: 13px; }
