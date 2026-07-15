@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check } from '@lucide/vue'
 import { computed } from 'vue'
+import DecimalInput from '@/components/ui/DecimalInput.vue'
 import type { Category } from '@/types/finance'
 import type { GasStation, Refueling, RefuelingDraft } from '@/types/refueling'
 import type { Vehicle } from '@/types/vehicle'
@@ -65,8 +66,8 @@ const calculatedCost = computed(() => {
       <label>Текущий одометр<input :value="form.odometer_reading" required type="number" min="1" @input="updateField('odometer_reading', Number(($event.target as HTMLInputElement).value))"></label>
       <label>Дистанция<input class="readonly-input" :class="{ invalid: calculatedDistance < 0 }" :value="calculatedDistance" readonly type="number" tabindex="-1"></label>
     </div>
-    <label>Количество, л<input :value="form.fuel_quantity" required type="number" min="0.01" step="0.01" @input="updateField('fuel_quantity', Number(($event.target as HTMLInputElement).value))"></label>
-    <label>Цена за литр<input :value="form.price_per_liter" required type="number" min="0.01" step="0.01" @input="updateField('price_per_liter', Number(($event.target as HTMLInputElement).value))"></label>
+    <label>Количество, л<DecimalInput :model-value="form.fuel_quantity" required :min="0.01" @update:model-value="updateField('fuel_quantity', $event)" /></label>
+    <label>Цена за литр<DecimalInput :model-value="form.price_per_liter" required :min="0.01" @update:model-value="updateField('price_per_liter', $event)" /></label>
     <label class="full">Стоимость<input class="readonly-input" :class="{ invalid: calculatedCost < 0 }" :value="calculatedCost" readonly type="number" tabindex="-1"></label>
     <label>Тип топлива<select :value="form.fuel_type || ''" @change="updateField('fuel_type', ($event.target as HTMLSelectElement).value)"><option v-for="fuelType in ['АИ-92', 'АИ-95', 'АИ-98', 'ДТ', 'ГАЗ']" :key="fuelType">{{ fuelType }}</option></select></label>
     <label>АЗС<select :value="form.gas_station ?? ''" @change="updateField('gas_station', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="station in stations" :key="station.id" :value="station.id">{{ station.company }} {{ station.name }}</option></select></label>
