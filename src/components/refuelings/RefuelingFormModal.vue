@@ -49,6 +49,12 @@ const calculatedDistance = computed(() => {
   return odometer - previousOdometer
 })
 
+const calculatedCost = computed(() => {
+  const quantity = Number(props.form.fuel_quantity || 0)
+  const price = Number(props.form.price_per_liter || 0)
+  return Math.round(quantity * price * 100) / 100
+})
+
 </script>
 
 <template>
@@ -61,6 +67,7 @@ const calculatedDistance = computed(() => {
     </div>
     <label>Количество, л<input :value="form.fuel_quantity" required type="number" min="0.01" step="0.01" @input="updateField('fuel_quantity', Number(($event.target as HTMLInputElement).value))"></label>
     <label>Цена за литр<input :value="form.price_per_liter" required type="number" min="0.01" step="0.01" @input="updateField('price_per_liter', Number(($event.target as HTMLInputElement).value))"></label>
+    <label class="full">Стоимость<input class="readonly-input" :class="{ invalid: calculatedCost < 0 }" :value="calculatedCost" readonly type="number" tabindex="-1"></label>
     <label>Тип топлива<select :value="form.fuel_type || ''" @change="updateField('fuel_type', ($event.target as HTMLSelectElement).value)"><option v-for="fuelType in ['АИ-92', 'АИ-95', 'АИ-98', 'ДТ', 'ГАЗ']" :key="fuelType">{{ fuelType }}</option></select></label>
     <label>АЗС<select :value="form.gas_station ?? ''" @change="updateField('gas_station', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="station in stations" :key="station.id" :value="station.id">{{ station.company }} {{ station.name }}</option></select></label>
     <label>Категория<select :value="form.category ?? ''" @change="updateField('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>

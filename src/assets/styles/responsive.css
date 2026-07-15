@@ -39,7 +39,7 @@
   .metric { min-height: 145px; padding: 16px; }
   .metric > strong { font-size: 20px; }
   .vehicle-grid { grid-template-columns: 1fr; }
-  .station-list article { grid-template-columns: 42px 1fr 38px; }
+  .station-list article { grid-template-columns: 42px 1fr 76px; }
   .station-address { grid-column: 2 / 3; }
   .fleet-summary { flex-direction: column; justify-content: center; }
   .fleet-legend { width: 100%; }
@@ -47,6 +47,10 @@
   .modal form label { grid-column: 1; }
   .odometer-field { grid-template-columns: 1fr; }
   .segmented-control { width: 100%; }
+}
+
+@media (hover: none) {
+  .station-actions { opacity: 1; pointer-events: auto; }
 }
 
 @media (max-width: 460px) {

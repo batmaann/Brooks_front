@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Building2, Plus, Trash2 } from '@lucide/vue'
+import { Building2, Pencil, Trash2 } from '@lucide/vue'
 import type { GasStation } from '@/types/refueling'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 defineProps<Props>()
 
 const emit = defineEmits<{
-  openStationModal: []
+  editGasStation: [station: GasStation]
   removeGasStation: [id: number, label: string]
 }>()
 </script>
@@ -27,9 +27,11 @@ const emit = defineEmits<{
         <div class="station-icon"><Building2 :size="21" /></div>
         <div class="station-main"><h2>{{ station.company || station.name }}</h2><p>{{ station.name }}<template v-if="station.number"> · №{{ station.number }}</template></p></div>
         <span class="station-address">{{ station.address || 'Адрес не указан' }}</span>
-        <button class="icon-button danger" title="Удалить АЗС" @click="emit('removeGasStation', station.id, station.name)"><Trash2 :size="17" /></button>
+        <div class="station-actions">
+          <button class="icon-button" title="Редактировать АЗС" @click="emit('editGasStation', station)"><Pencil :size="17" /></button>
+          <button class="icon-button danger" title="Удалить АЗС" @click="emit('removeGasStation', station.id, station.name)"><Trash2 :size="17" /></button>
+        </div>
       </article>
-      <button class="add-row" @click="emit('openStationModal')"><Plus :size="20" />Добавить АЗС</button>
     </div>
   </section>
 </template>

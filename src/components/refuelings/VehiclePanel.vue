@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CarFront, Plus, Trash2 } from '@lucide/vue'
+import { CarFront, Trash2 } from '@lucide/vue'
 import { useFormatters } from '@/composables/useFormatters'
 import type { Vehicle } from '@/types/vehicle'
 
@@ -10,7 +10,6 @@ interface Props {
 defineProps<Props>()
 
 const emit = defineEmits<{
-  openVehicleModal: []
   removeVehicle: [id: number, label: string]
 }>()
 
@@ -41,7 +40,6 @@ const { number } = useFormatters()
           <div><dt>Начальный</dt><dd>{{ number(vehicle.initial_odometer) }} км</dd></div>
         </dl>
       </article>
-      <button class="add-card" @click="emit('openVehicleModal')"><Plus :size="23" /><strong>Добавить транспорт</strong></button>
     </div>
   </section>
 </template>

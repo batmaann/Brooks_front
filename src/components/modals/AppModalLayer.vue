@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Check, RefreshCw } from '@lucide/vue'
+import { computed } from 'vue'
 import BankLabelModal from '@/components/finance/BankLabelModal.vue'
 import CategoryModal from '@/components/finance/CategoryModal.vue'
 import AboutModal from '@/components/modals/AboutModal.vue'
@@ -32,12 +33,13 @@ const {
   updateCategory,
 } = finance
 const {
-  createStation,
   createVehicle,
   editingRefuelingId,
+  editingStationId,
   refuelingForm,
   refuelings,
   saveRefueling,
+  saveStation,
   stationForm,
   stations,
   vehicleForm,
@@ -52,6 +54,11 @@ const {
   pendingDelete,
 } = modals
 const { error, saving } = ui
+
+const hasInvalidRefuelingCost = computed(() => {
+  const cost = Number(refuelingForm.fuel_quantity || 0) * Number(refuelingForm.price_per_liter || 0)
+  return modal.value === 'refueling' && cost < 0
+})
 </script>
 
 <template>
@@ -67,7 +74,7 @@ const { error, saving } = ui
 
   <BaseModal
     v-else-if="modal"
-    :eyebrow="modalEyebrow"
+    :eyebrow="modal === 'station' && editingStationId ? 'Редактирование' : modalEyebrow"
     :show-footer="modal !== 'bankLabel' && modal !== 'category'"
     :title="modalTitle"
     :wide="modal === 'bankLabel' || modal === 'category'"
@@ -85,7 +92,7 @@ const { error, saving } = ui
       @submit="saveRefueling"
       @update:form="Object.assign(refuelingForm, $event)"
     />
-    <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="createStation" @update:form="Object.assign(stationForm, $event)" />
+    <GasStationFormModal v-if="modal === 'station'" :form="stationForm" @submit="saveStation" @update:form="Object.assign(stationForm, $event)" />
     <BankLabelModal
       v-if="modal === 'bankLabel'"
       :bank-labels="bankLabels"
@@ -117,7 +124,7 @@ const { error, saving } = ui
 
     <template #footer>
       <button class="secondary-button" type="button" @click="closeModal">Отмена</button>
-      <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving">
+      <button class="primary-button" type="submit" :form="`${modal}-form`" :disabled="saving || hasInvalidRefuelingCost">
         <RefreshCw v-if="saving" class="spin" :size="17" />
         <Check v-else :size="17" />
         Сохранить

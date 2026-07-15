@@ -7,6 +7,7 @@ import {
   deleteRefueling as deleteRefuelingRequest,
   getGasStations,
   getRefuelings,
+  updateGasStation as updateGasStationRequest,
   updateRefueling as updateRefuelingRequest,
 } from '@/services/refuelingService'
 import {
@@ -54,6 +55,13 @@ export const useFleetStore = defineStore('fleet', () => {
     return created
   }
 
+  async function updateGasStation(id: number, payload: GasStationPayload) {
+    const updated = await updateGasStationRequest(id, payload)
+    const index = stations.value.findIndex((station) => station.id === id)
+    if (index !== -1) stations.value[index] = updated
+    return updated
+  }
+
   async function deleteVehicle(id: number) {
     await deleteVehicleRequest(id)
   }
@@ -83,6 +91,7 @@ export const useFleetStore = defineStore('fleet', () => {
     load,
     refuelings,
     stations,
+    updateGasStation,
     updateRefueling,
     vehicles,
   }

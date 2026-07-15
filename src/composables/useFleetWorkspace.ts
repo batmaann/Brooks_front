@@ -79,6 +79,8 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
   const refuelingForm = reactive(defaultRefuelingForm())
   const stationForm = reactive(defaultStationForm())
   const editingRefuelingId = ref<number | null>(null)
+  const editingStationId = ref<number | null>(null)
+  const bulkRefuelingCategoryValue = ref('')
   const bulkRefuelingVehicleValue = ref('')
   const bulkRefuelingStationValue = ref('')
 
@@ -234,17 +236,51 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     })
   }
 
-  async function createStation() {
+  function prepareCreateStation() {
+    editingStationId.value = null
+    Object.assign(stationForm, defaultStationForm())
+  }
+
+  function startEditStation(station: GasStationPayload & { id: number }) {
+    error.value = ''
+    editingStationId.value = station.id
+    Object.assign(stationForm, {
+      name: station.name,
+      company: station.company,
+      number: station.number,
+      address: station.address,
+    })
+  }
+
+  async function saveStation() {
     await submit(async () => {
-      await fleetStore.createGasStation(stationForm)
+      if (editingStationId.value) {
+        await fleetStore.updateGasStation(editingStationId.value, stationForm)
+      } else {
+        await fleetStore.createGasStation(stationForm)
+      }
+      editingStationId.value = null
       Object.assign(stationForm, defaultStationForm())
     })
   }
 
   function clearRefuelingSelection() {
     clearRefuelingIds()
+    bulkRefuelingCategoryValue.value = ''
     bulkRefuelingVehicleValue.value = ''
     bulkRefuelingStationValue.value = ''
+  }
+
+  async function applyBulkRefuelingCategory() {
+    if (!selectedRefuelingIds.value.length || !bulkRefuelingCategoryValue.value) return
+    await submit(async () => {
+      const category = bulkRefuelingCategoryValue.value === '__clear__' ? null : Number(bulkRefuelingCategoryValue.value)
+      await Promise.all(selectedRefuelingIds.value.map((id) =>
+        fleetStore.updateRefueling(id, { category }),
+      ))
+      clearRefuelingSelection()
+      await loadData()
+    }, { closeAfter: false })
   }
 
   async function applyBulkRefuelingVehicle() {
@@ -281,17 +317,19 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
 
   return {
     allVisibleRefuelingsSelected,
+    applyBulkRefuelingCategory,
     applyBulkRefuelingStation,
     applyBulkRefuelingVehicle,
+    bulkRefuelingCategoryValue,
     bulkRefuelingStationValue,
     bulkRefuelingVehicleValue,
     canToggleRefuelingColumn,
     clearRefuelingSelection,
-    createStation,
     createVehicle,
     draggedRefuelingColumn,
     dropRefuelingColumn,
     editingRefuelingId,
+    editingStationId,
     filteredRefuelings,
     filteredStations,
     filteredVehicles,
@@ -299,6 +337,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     isRefuelingSelected,
     keepExistingRefuelingSelection,
     prepareCreateRefueling,
+    prepareCreateStation,
     refuelingColumnLabels,
     refuelingColumnOrder,
     refuelingColumnVisibility,
@@ -311,10 +350,12 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
     refuelings,
     requestBulkRefuelingDelete,
     resetRefuelingEditor,
+    saveStation,
     saveRefueling,
     selectedRefuelingCount,
     selectedRefuelingIds,
     startEditRefueling,
+    startEditStation,
     startRefuelingColumnDrag,
     stationById,
     stationForm,

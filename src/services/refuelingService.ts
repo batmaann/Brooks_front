@@ -35,6 +35,13 @@ export function createGasStation(payload: GasStationPayload) {
   })
 }
 
+export function updateGasStation(id: number, payload: GasStationPayload) {
+  return api<GasStation>(`/gasStation/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function deleteGasStation(id: number) {
   return api<void>(`/gasStation/${id}/`, { method: 'DELETE' })
 }
