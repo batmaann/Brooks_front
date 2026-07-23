@@ -58,7 +58,7 @@ function bulkValue(rawValue: string) {
 
 export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
   const { error, financeStore, loadData, requestDelete, submit, transactionSearch } = options
-  const { bankLabels, categories, sections, transactions } = storeToRefs(financeStore)
+  const { bankLabels, categories, monthlySummary, sections, transactions } = storeToRefs(financeStore)
   const { currency, formatDate } = useFormatters()
 
   const selectedBankLabelId = ref<number | null>(null)
@@ -98,17 +98,6 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     },
     { storageKey: 'brooks.dashboard.columns' },
   )
-
-  const transactionIncome = computed(() => transactions.value
-    .filter((item) => item.transaction_type === 'income')
-    .reduce((sum, item) => sum + Number(item.amount), 0))
-  const transactionExpense = computed(() => transactions.value
-    .filter((item) => item.transaction_type === 'expense')
-    .reduce((sum, item) => sum + Number(item.amount), 0))
-  const transactionSaving = computed(() => transactions.value
-    .filter((item) => item.transaction_type === 'saving')
-    .reduce((sum, item) => sum + Number(item.amount), 0))
-  const transactionBalance = computed(() => transactionIncome.value - transactionExpense.value - transactionSaving.value)
 
   function sectionById(id: number | null) {
     return sections.value.find((section) => section.id === id)
@@ -377,6 +366,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     finishTransactionColumnDrag,
     isTransactionSelected,
     keepExistingTransactionSelection,
+    monthlySummary,
     requestBulkTransactionDelete,
     resetDictionaryEditors,
     sectionName,
@@ -392,16 +382,12 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     toggleTransactionColumn,
     toggleTransactionSelection,
     toggleTransactionSort,
-    transactionBalance,
     transactionColumnLabels,
     transactionColumnOrder,
     transactionColumnVisibility,
     transactionEditForm,
-    transactionExpense,
     transactionForm,
-    transactionIncome,
     transactions,
-    transactionSaving,
     transactionSign,
     transactionSort,
     transactionTitle,

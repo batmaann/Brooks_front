@@ -163,7 +163,13 @@ td .icon-button { width: 32px; height: 32px; }
 .station-address { color: var(--muted); font-size: 12px; }
 .add-row { width: 100%; min-height: 54px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; color: var(--green); background: #f9fbfa; font-weight: 800; font-size: 12px; }
 .compact-heading .secondary-button { min-height: 36px; }
-.finance-summary-item small { color: var(--muted); font-size: 11px; font-weight: 700; }
+.finance-summary-item small { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: none; }
+.finance-summary-item small.up { color: #176844; }
+.finance-summary-item small.down { color: #9b4d4d; }
+.trend-icon { width: 22px; height: 22px; margin-right: 3px; display: inline-flex; flex: 0 0 22px; align-items: center; justify-content: center; border-radius: 7px; background: #edf1ef; font-style: normal; }
+.finance-summary-item small.up .trend-icon { background: #e2f3e9; }
+.finance-summary-item small.down .trend-icon { background: #f8e8e8; }
+.finance-summary-item small.new .trend-icon { color: #75600f; background: #f7efcd; }
 .management-heading { min-height: auto; }
 .management-actions { display: flex; align-items: center; gap: 9px; }
 .management-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 18px; align-items: start; }
@@ -306,6 +312,10 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .transaction-amount.expense { color: #ffa1a1; }
 [data-theme="dark"] .finance-summary-item.saving strong,
 [data-theme="dark"] .transaction-amount.saving { color: #f2c75b; }
+[data-theme="dark"] .trend-icon { background: #26312d; }
+[data-theme="dark"] .finance-summary-item small.up .trend-icon { background: #183527; }
+[data-theme="dark"] .finance-summary-item small.down .trend-icon { background: #3b2020; }
+[data-theme="dark"] .finance-summary-item small.new .trend-icon { color: #f2c75b; background: #382d17; }
 [data-theme="dark"] .transaction-type.income { color: #78e0a8; background: #183527; }
 [data-theme="dark"] .transaction-type.expense { color: #ffa1a1; background: #3b2020; }
 [data-theme="dark"] .transaction-type.saving { color: #f2c75b; background: #382d17; }

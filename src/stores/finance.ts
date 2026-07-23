@@ -12,6 +12,7 @@ import {
 import {
   createTransaction as createTransactionRequest,
   deleteTransaction as deleteTransactionRequest,
+  getMonthlySummary,
   getTransactions,
   updateTransaction as updateTransactionRequest,
 } from '@/services/transactionService'
@@ -23,10 +24,12 @@ import type {
   Section,
   Transaction,
   TransactionPayload,
+  MonthlySummary,
 } from '@/types/finance'
 
 export const useFinanceStore = defineStore('finance', () => {
   const transactions = ref<Transaction[]>([])
+  const monthlySummary = ref<MonthlySummary | null>(null)
   const bankLabels = ref<BankLabel[]>([])
   const categories = ref<Category[]>([])
   const sections = ref<Section[]>([])
@@ -36,14 +39,16 @@ export const useFinanceStore = defineStore('finance', () => {
   }
 
   async function load() {
-    const [transactionData, bankLabelData, categoryData, sectionData] = await Promise.all([
+    const [transactionData, monthlySummaryData, bankLabelData, categoryData, sectionData] = await Promise.all([
       getTransactions(),
+      getMonthlySummary(),
       getBankLabels(),
       getCategories(),
       getSections().catch(() => [] as Section[]),
     ])
 
     transactions.value = transactionData
+    monthlySummary.value = monthlySummaryData
     bankLabels.value = bankLabelData
     categories.value = categoryData
     sections.value = sectionData.filter((section) => section.is_active)
@@ -93,6 +98,7 @@ export const useFinanceStore = defineStore('finance', () => {
 
   function clear() {
     transactions.value = []
+    monthlySummary.value = null
     bankLabels.value = []
     categories.value = []
     sections.value = []
@@ -107,6 +113,7 @@ export const useFinanceStore = defineStore('finance', () => {
     createTransaction,
     deleteTransaction,
     load,
+    monthlySummary,
     sections,
     transactions,
     updateBankLabel,
