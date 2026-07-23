@@ -31,6 +31,7 @@ const {
   editingTransactionId,
   finishTransactionColumnDrag,
   isTransactionSelected,
+  monthlySummary,
   requestBulkTransactionDelete,
   sectionName,
   sections,
@@ -42,16 +43,12 @@ const {
   toggleTransactionColumn,
   toggleTransactionSelection,
   toggleTransactionSort,
-  transactionBalance,
   transactionColumnLabels,
   transactionColumnOrder,
   transactionColumnVisibility,
   transactionEditForm,
-  transactionExpense,
   transactionForm,
-  transactionIncome,
   transactions,
-  transactionSaving,
   transactionSign,
   transactionSort,
   transactionTitle,
@@ -73,10 +70,7 @@ const transactionSearchModel = computed({
 <template>
   <FinanceSummary
     v-if="dashboardVisibility.summary"
-    :balance="transactionBalance"
-    :expense="transactionExpense"
-    :income="transactionIncome"
-    :saving="transactionSaving"
+    :summary="monthlySummary"
   />
   <section class="finance-panel panel">
     <div class="section-heading">

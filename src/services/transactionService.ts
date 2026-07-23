@@ -1,9 +1,14 @@
 import { api, listResult } from '@/api'
 import type { ApiListResponse } from '@/types/common'
-import type { Transaction, TransactionPayload } from '@/types/finance'
+import type { MonthlySummary, Transaction, TransactionPayload } from '@/types/finance'
 
 export async function getTransactions() {
   return listResult(await api<ApiListResponse<Transaction>>('/transactions/'))
+}
+
+export function getMonthlySummary(currency = 'RUB') {
+  const params = new URLSearchParams({ currency })
+  return api<MonthlySummary>(`/transactions/monthly-summary/?${params}`)
 }
 
 export function createTransaction(payload: TransactionPayload) {

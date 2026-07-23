@@ -75,5 +75,26 @@ export interface TransactionPayload {
   source?: TransactionSource
 }
 
+export type MonthlySummaryDirection = 'up' | 'down' | 'same' | 'new'
+
+export interface MonthlySummaryMetric {
+  current: string
+  previous: string
+  change_percent: string | null
+  direction: MonthlySummaryDirection
+}
+
+export interface MonthlySummary {
+  period: {
+    current: { date_from: string, date_to: string }
+    previous: { date_from: string, date_to: string }
+  }
+  currency: string
+  income: MonthlySummaryMetric
+  expense: MonthlySummaryMetric
+  saving: MonthlySummaryMetric
+  total: MonthlySummaryMetric
+}
+
 export type CategoryPayload = Pick<Category, 'name' | 'description'>
 export type BankLabelPayload = Pick<BankLabel, 'name' | 'description'>
