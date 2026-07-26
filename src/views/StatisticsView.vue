@@ -40,7 +40,7 @@ const chartPalettes: Record<ChartMetric, string[]> = {
 
 const props = defineProps<{ initialMetric: ChartMetric, month: Date, refreshKey: number }>()
 const { currency } = useFormatters()
-const chartMode = ref<'donut' | 'radar'>('donut')
+const chartMode = ref<'donut' | 'radar' | 'bar'>('donut')
 const chartMetric = ref<ChartMetric>(props.initialMetric)
 const chartGrouping = ref<ChartGrouping>('category')
 const hoveredDonutSlice = ref<ExpenseSlice | null>(null)
@@ -144,6 +144,10 @@ function radarPoints(radius: number) {
     .join(' ')
 }
 
+function barHeight(slice: ExpenseSlice) {
+  return `${Math.max(4, slice.amount / radarMaximum.value * 100)}%`
+}
+
 const radarValuePoints = computed(() => expenseSlices.value
   .map((slice, index) => {
     const point = radarPoint(index, radarRadius * slice.amount / radarMaximum.value)
@@ -185,7 +189,7 @@ async function load() {
 
 watch(() => [props.month, props.refreshKey], load, { immediate: true })
 watch(expenseSlices, (slices) => {
-  if (slices.length < 3) chartMode.value = 'donut'
+  if (slices.length < 3 && chartMode.value === 'radar') chartMode.value = 'donut'
 })
 watch([chartMetric, chartGrouping], () => {
   hoveredDonutSlice.value = null
@@ -200,10 +204,10 @@ watch([chartMetric, chartGrouping], () => {
       <article class="expense-chart-card">
         <div class="expense-chart-copy">
           <div class="expense-chart-heading">
-            <span>Распределение {{ chartMetricLabels[chartMetric].genitive }}</span>
             <div class="expense-chart-switch" role="group" aria-label="Вид диаграммы">
               <button type="button" :class="{ active: chartMode === 'donut' }" @click="chartMode = 'donut'">Кольцевая</button>
               <button type="button" :class="{ active: chartMode === 'radar' }" :disabled="expenseSlices.length < 3" :title="expenseSlices.length < 3 ? 'Нужно не меньше трёх групп' : ''" @click="chartMode = 'radar'">Лепестковая</button>
+              <button type="button" :class="{ active: chartMode === 'bar' }" @click="chartMode = 'bar'">Столбчатая</button>
             </div>
             <div class="expense-metric-switch" role="group" aria-label="Финансовый показатель">
               <button v-for="option in chartMetricOptions" :key="option.id" type="button" :class="[{ active: chartMetric === option.id }, option.id]" @click="chartMetric = option.id">{{ option.label }}</button>
@@ -240,7 +244,7 @@ watch([chartMetric, chartGrouping], () => {
               <span>{{ hoveredDonutSlice?.name ?? `всего ${chartMetricLabels[chartMetric].genitive}` }}</span>
             </div>
           </div>
-          <svg v-else class="expense-radar" :class="chartMetric" viewBox="0 0 300 300" role="img" :aria-label="`Лепестковая диаграмма ${chartMetricLabels[chartMetric].genitive} по ${chartGrouping === 'category' ? 'категориям' : 'банкам'}`">
+          <svg v-else-if="chartMode === 'radar'" class="expense-radar" :class="chartMetric" viewBox="0 0 300 300" role="img" :aria-label="`Лепестковая диаграмма ${chartMetricLabels[chartMetric].genitive} по ${chartGrouping === 'category' ? 'категориям' : 'банкам'}`">
             <polygon v-for="level in [0.25, 0.5, 0.75, 1]" :key="level" class="radar-grid" :points="radarPoints(radarRadius * level)" />
             <g v-for="axis in radarAxes" :key="axis.slice.name">
               <line class="radar-axis" :x1="radarCenter" :y1="radarCenter" :x2="axis.outer.x" :y2="axis.outer.y" />
@@ -251,6 +255,14 @@ watch([chartMetric, chartGrouping], () => {
               <title>{{ axis.slice.name }}: {{ currency(axis.slice.amount, 'RUB') }}</title>
             </circle>
           </svg>
+          <div v-else class="expense-bars" :style="{ gridTemplateColumns: `repeat(${expenseSlices.length}, minmax(28px, 1fr))` }" role="img" :aria-label="`Столбчатая диаграмма ${chartMetricLabels[chartMetric].genitive} по ${chartGrouping === 'category' ? 'категориям' : 'банкам'}`">
+            <div v-for="slice in expenseSlices" :key="slice.name" class="expense-bar-column">
+              <div class="expense-bar-area">
+                <span :style="{ height: barHeight(slice), background: slice.color }" :title="`${slice.name}: ${currency(slice.amount, 'RUB')} (${slice.percent.toFixed(2)}%)`"></span>
+              </div>
+              <strong :title="slice.name">{{ slice.name }}</strong>
+            </div>
+          </div>
           <div class="expense-legend">
             <div v-for="slice in expenseSlices" :key="slice.name" class="expense-legend-row" :title="`${slice.name}: ${currency(slice.amount, 'RUB')} (${slice.percent.toFixed(2)}%)`">
               <i :style="{ background: slice.color }"></i>
