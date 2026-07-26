@@ -7,8 +7,6 @@
   .finance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .statistics-grid { grid-template-columns: 1fr; }
   .expense-chart-card { grid-template-columns: 1fr; }
-  .expense-metric-switch { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .expense-metric-switch button { text-align: center; }
 }
 
 @media (max-width: 760px) {

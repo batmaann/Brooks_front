@@ -20,6 +20,7 @@ type ExpenseSlice = {
 }
 
 type ChartMetric = 'income' | 'expense' | 'saving'
+type ChartGrouping = 'category' | 'bank'
 
 const chartMetricOptions: { id: ChartMetric, label: string }[] = [
   { id: 'expense', label: 'Траты' },
@@ -41,6 +42,8 @@ const props = defineProps<{ initialMetric: ChartMetric, month: Date, refreshKey:
 const { currency } = useFormatters()
 const chartMode = ref<'donut' | 'radar'>('donut')
 const chartMetric = ref<ChartMetric>(props.initialMetric)
+const chartGrouping = ref<ChartGrouping>('category')
+const hoveredDonutSlice = ref<ExpenseSlice | null>(null)
 const categoryData = ref<MonthlyCategoryBreakdown | null>(null)
 const bankData = ref<MonthlyBankBreakdown | null>(null)
 const loading = ref(false)
@@ -76,14 +79,15 @@ const categories = computed(() => sorted(categoryData.value?.categories ?? []))
 const banks = computed(() => sorted(bankData.value?.banks ?? []))
 const categoryMaximum = computed(() => Math.max(1, ...categories.value.map((item) => Math.abs(total(item)))))
 const bankMaximum = computed(() => Math.max(1, ...banks.value.map((item) => Math.abs(total(item)))))
-const expenseTotal = computed(() => categories.value.reduce(
+const chartItems = computed<BreakdownItem[]>(() => chartGrouping.value === 'category' ? categories.value : banks.value)
+const expenseTotal = computed(() => chartItems.value.reduce(
   (sum, item) => sum + Number(item[chartMetric.value].amount),
   0,
 ))
 const expenseSlices = computed<ExpenseSlice[]>(() => {
-  const items = categories.value
+  const items = chartItems.value
     .map((item) => ({
-      name: item.category_name,
+      name: itemName(item),
       amount: Number(item[chartMetric.value].amount),
       count: item[chartMetric.value].count,
     }))
@@ -110,16 +114,13 @@ const expenseSlices = computed<ExpenseSlice[]>(() => {
     color: chartPalettes[chartMetric.value][index] ?? chartPalettes[chartMetric.value][0] ?? '#9951e8',
   }))
 })
-const expenseChartBackground = computed(() => {
-  if (!expenseSlices.value.length) return 'conic-gradient(var(--line) 0 100%)'
+const interactiveDonutSlices = computed(() => {
   let start = 0
-  const segments = expenseSlices.value.map((slice) => {
-    const end = start + slice.percent
-    const segment = `${slice.color} ${start}% ${end}%`
-    start = end
-    return segment
+  return expenseSlices.value.map((slice) => {
+    const result = { ...slice, offset: -start }
+    start += slice.percent
+    return result
   })
-  return `conic-gradient(${segments.join(', ')})`
 })
 const radarCenter = 150
 const radarRadius = 88
@@ -186,6 +187,9 @@ watch(() => [props.month, props.refreshKey], load, { immediate: true })
 watch(expenseSlices, (slices) => {
   if (slices.length < 3) chartMode.value = 'donut'
 })
+watch([chartMetric, chartGrouping], () => {
+  hoveredDonutSlice.value = null
+})
 </script>
 
 <template>
@@ -197,21 +201,46 @@ watch(expenseSlices, (slices) => {
         <div class="expense-chart-copy">
           <div class="expense-chart-heading">
             <span>Распределение {{ chartMetricLabels[chartMetric].genitive }}</span>
+            <div class="expense-chart-switch" role="group" aria-label="Вид диаграммы">
+              <button type="button" :class="{ active: chartMode === 'donut' }" @click="chartMode = 'donut'">Кольцевая</button>
+              <button type="button" :class="{ active: chartMode === 'radar' }" :disabled="expenseSlices.length < 3" :title="expenseSlices.length < 3 ? 'Нужно не меньше трёх групп' : ''" @click="chartMode = 'radar'">Лепестковая</button>
+            </div>
             <div class="expense-metric-switch" role="group" aria-label="Финансовый показатель">
               <button v-for="option in chartMetricOptions" :key="option.id" type="button" :class="[{ active: chartMetric === option.id }, option.id]" @click="chartMetric = option.id">{{ option.label }}</button>
             </div>
-            <div class="expense-chart-switch" role="group" aria-label="Вид диаграммы">
-              <button type="button" :class="{ active: chartMode === 'donut' }" @click="chartMode = 'donut'">Кольцевая</button>
-              <button type="button" :class="{ active: chartMode === 'radar' }" :disabled="expenseSlices.length < 3" :title="expenseSlices.length < 3 ? 'Нужно не меньше трёх категорий' : ''" @click="chartMode = 'radar'">Лепестковая</button>
+            <div class="expense-grouping-switch" role="group" aria-label="Группировка статистики">
+              <button type="button" :class="{ active: chartGrouping === 'category' }" @click="chartGrouping = 'category'">По категориям</button>
+              <button type="button" :class="{ active: chartGrouping === 'bank' }" @click="chartGrouping = 'bank'">По банкам</button>
             </div>
           </div>
-          <h3>{{ chartMetricOptions.find((option) => option.id === chartMetric)?.label }} по категориям</h3>
         </div>
         <div v-if="expenseSlices.length" class="expense-chart-content">
-          <div v-if="chartMode === 'donut'" class="expense-donut" :style="{ background: expenseChartBackground }" role="img" :aria-label="`Кольцевая диаграмма ${chartMetricLabels[chartMetric].genitive} по категориям`">
-            <div><strong>{{ currency(expenseTotal, 'RUB') }}</strong><span>всего {{ chartMetricLabels[chartMetric].genitive }}</span></div>
+          <div v-if="chartMode === 'donut'" class="expense-donut" role="img" :aria-label="`Кольцевая диаграмма ${chartMetricLabels[chartMetric].genitive} по ${chartGrouping === 'category' ? 'категориям' : 'банкам'}`">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut-base" cx="60" cy="60" r="46" pathLength="100" />
+              <circle
+                v-for="slice in interactiveDonutSlices"
+                :key="slice.name"
+                class="donut-segment"
+                cx="60"
+                cy="60"
+                r="46"
+                pathLength="100"
+                :stroke="slice.color"
+                :stroke-dasharray="`${slice.percent} ${100 - slice.percent}`"
+                :stroke-dashoffset="slice.offset"
+                @mouseenter="hoveredDonutSlice = slice"
+                @mouseleave="hoveredDonutSlice = null"
+              >
+                <title>{{ slice.name }}: {{ currency(slice.amount, 'RUB') }} ({{ slice.percent.toFixed(2) }}%)</title>
+              </circle>
+            </svg>
+            <div>
+              <strong>{{ currency(hoveredDonutSlice?.amount ?? expenseTotal, 'RUB') }}</strong>
+              <span>{{ hoveredDonutSlice?.name ?? `всего ${chartMetricLabels[chartMetric].genitive}` }}</span>
+            </div>
           </div>
-          <svg v-else class="expense-radar" :class="chartMetric" viewBox="0 0 300 300" role="img" :aria-label="`Лепестковая диаграмма ${chartMetricLabels[chartMetric].genitive} по категориям`">
+          <svg v-else class="expense-radar" :class="chartMetric" viewBox="0 0 300 300" role="img" :aria-label="`Лепестковая диаграмма ${chartMetricLabels[chartMetric].genitive} по ${chartGrouping === 'category' ? 'категориям' : 'банкам'}`">
             <polygon v-for="level in [0.25, 0.5, 0.75, 1]" :key="level" class="radar-grid" :points="radarPoints(radarRadius * level)" />
             <g v-for="axis in radarAxes" :key="axis.slice.name">
               <line class="radar-axis" :x1="radarCenter" :y1="radarCenter" :x2="axis.outer.x" :y2="axis.outer.y" />
