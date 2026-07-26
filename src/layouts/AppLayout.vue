@@ -10,6 +10,8 @@ defineProps<{
   error: string
   loading: boolean
   mobileNavOpen: boolean
+  statisticsMode: boolean
+  statisticsMonthLabel: string
   title: string
 }>()
 
@@ -17,9 +19,12 @@ const emit = defineEmits<{
   about: []
   clearError: []
   closeMenu: []
+  closeStatistics: []
   logout: []
+  nextStatisticsMonth: []
   openMenu: []
   refresh: []
+  previousStatisticsMonth: []
   selectView: [view: AppView]
   toggleTheme: []
 }>()
@@ -40,9 +45,14 @@ const emit = defineEmits<{
       <AppTopbar
         :dark-theme="darkTheme"
         :loading="loading"
+        :statistics-mode="statisticsMode"
+        :statistics-month-label="statisticsMonthLabel"
         :title="title"
+        @close-statistics="emit('closeStatistics')"
+        @next-statistics-month="emit('nextStatisticsMonth')"
         @open-menu="emit('openMenu')"
         @refresh="emit('refresh')"
+        @previous-statistics-month="emit('previousStatisticsMonth')"
         @toggle-theme="emit('toggleTheme')"
       />
 

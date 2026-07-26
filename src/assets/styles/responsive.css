@@ -5,6 +5,10 @@
   .vehicle-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid { grid-template-columns: 1fr; }
   .finance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statistics-grid { grid-template-columns: 1fr; }
+  .expense-chart-card { grid-template-columns: 1fr; }
+  .expense-metric-switch { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .expense-metric-switch button { text-align: center; }
 }
 
 @media (max-width: 760px) {
@@ -47,6 +51,16 @@
   .modal form label { grid-column: 1; }
   .odometer-field { grid-template-columns: 1fr; }
   .segmented-control { width: 100%; }
+  .topbar-statistics-back { padding-right: 8px; font-size: 0; }
+  .topbar-month-picker { width: min(210px, 42vw); }
+  .topbar-month-picker strong { font-size: 11px; }
+  .statistics-card { min-height: 0; padding: 19px; }
+  .expense-chart-card { padding: 20px; gap: 24px; }
+  .expense-chart-content { grid-template-columns: 220px minmax(0, 1fr); gap: 24px; }
+  .expense-donut { width: 210px; }
+  .expense-radar { width: 240px; height: 240px; }
+  .expense-donut > div { width: 126px; }
+  .expense-donut strong { font-size: 16px; }
 }
 
 @media (hover: none) {
@@ -63,4 +77,11 @@
   .section-heading { align-items: stretch; }
   .modal-backdrop { padding: 0; }
   .modal { max-height: 100vh; min-height: 100vh; border-radius: 0; }
+  .statistics-row-main { grid-template-columns: 9px minmax(0, 1fr) auto; }
+  .statistics-row-main span { display: none; }
+  .statistics-row-main b { min-width: 90px; font-size: 12px; }
+  .expense-chart-content { grid-template-columns: 1fr; justify-items: center; }
+  .expense-legend { width: 100%; }
+  .expense-legend-row { grid-template-columns: 9px minmax(80px, 1fr) 54px 100px; }
+  .expense-legend-row span { display: none; }
 }
