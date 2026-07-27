@@ -96,5 +96,54 @@ export interface MonthlySummary {
   total: MonthlySummaryMetric
 }
 
+export interface MonthlyBreakdownMetric {
+  amount: string
+  count: number
+  share_percent: string
+}
+
+export interface MonthlyBreakdownTotals {
+  income: Pick<MonthlyBreakdownMetric, 'amount' | 'count'>
+  expense: Pick<MonthlyBreakdownMetric, 'amount' | 'count'>
+  saving: Pick<MonthlyBreakdownMetric, 'amount' | 'count'>
+}
+
+export interface MonthlyBreakdownPeriod {
+  year: number
+  month: number
+  date_from: string
+  date_to: string
+}
+
+export interface MonthlyCategoryBreakdownItem {
+  category_id: number | null
+  category_name: string
+  income: MonthlyBreakdownMetric
+  expense: MonthlyBreakdownMetric
+  saving: MonthlyBreakdownMetric
+}
+
+export interface MonthlyBankBreakdownItem {
+  bank_label_id: number | null
+  bank_label_name: string
+  income: MonthlyBreakdownMetric
+  expense: MonthlyBreakdownMetric
+  saving: MonthlyBreakdownMetric
+}
+
+export interface MonthlyCategoryBreakdown {
+  period: MonthlyBreakdownPeriod
+  currency: string
+  totals: MonthlyBreakdownTotals
+  categories: MonthlyCategoryBreakdownItem[]
+}
+
+export interface MonthlyBankBreakdown {
+  period: MonthlyBreakdownPeriod
+  currency: string
+  totals: MonthlyBreakdownTotals
+  banks: MonthlyBankBreakdownItem[]
+}
+
 export type CategoryPayload = Pick<Category, 'name' | 'description'>
 export type BankLabelPayload = Pick<BankLabel, 'name' | 'description'>

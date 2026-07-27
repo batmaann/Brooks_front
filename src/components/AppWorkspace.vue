@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { navItems } from '@/constants/navigation'
 import DashboardView from '@/views/DashboardView.vue'
 import RefuelingsView from '@/views/RefuelingsView.vue'
+import StatisticsView from '@/views/StatisticsView.vue'
 import { useSubmitState } from '@/composables/useSubmitState'
 import { useTheme } from '@/composables/useTheme'
 import { useAuthStore } from '@/stores/auth'
@@ -30,6 +31,10 @@ const mobileNavOpen = ref(false)
 const search = ref('')
 const transactionSearch = ref('')
 const dashboardControlsOpen = ref(false)
+const statisticsOpen = ref(false)
+const statisticsMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+const statisticsRefreshKey = ref(0)
+const statisticsMetric = ref<'income' | 'expense' | 'saving'>('expense')
 const { error, saving, submit: submitState } = useSubmitState((requestError) => requestError instanceof ApiError ? requestError.message : 'Не удалось сохранить данные')
 
 const deferred = {
@@ -136,8 +141,34 @@ const { loadData: refreshWorkspace, loading, logout } = workspaceData
 const { openModal } = workspaceModals
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
+const statisticsMonthLabel = computed(() => new Intl.DateTimeFormat('ru-RU', {
+  month: 'long',
+  year: 'numeric',
+}).format(statisticsMonth.value).replace(/^./, (letter) => letter.toUpperCase()))
+
+function shiftStatisticsMonth(offset: number) {
+  statisticsMonth.value = new Date(
+    statisticsMonth.value.getFullYear(),
+    statisticsMonth.value.getMonth() + offset,
+    1,
+  )
+}
+
+function openStatistics(metric: 'income' | 'expense' | 'saving' | 'total') {
+  statisticsMetric.value = metric === 'total' ? 'expense' : metric
+  statisticsOpen.value = true
+}
+
+function refreshCurrentView() {
+  if (statisticsOpen.value) {
+    statisticsRefreshKey.value += 1
+    return
+  }
+  refreshWorkspace()
+}
 
 function selectView(view: View) {
+  statisticsOpen.value = false
   activeView.value = view
   search.value = ''
   mobileNavOpen.value = false
@@ -158,17 +189,23 @@ onMounted(() => {
     :error="error"
     :loading="loading"
     :mobile-nav-open="mobileNavOpen"
-    :title="viewTitle"
+    :statistics-mode="statisticsOpen"
+    :statistics-month-label="statisticsMonthLabel"
+    :title="statisticsOpen ? 'Статистика' : viewTitle"
     @about="openModal('about')"
     @clear-error="error = ''"
     @close-menu="mobileNavOpen = false"
+    @close-statistics="statisticsOpen = false"
     @logout="logout"
     @open-menu="mobileNavOpen = true"
-    @refresh="refreshWorkspace"
+    @next-statistics-month="shiftStatisticsMonth(1)"
+    @previous-statistics-month="shiftStatisticsMonth(-1)"
+    @refresh="refreshCurrentView"
     @select-view="selectView"
     @toggle-theme="toggleTheme"
   >
-    <DashboardView v-if="activeView === 'dashboard'" />
+    <StatisticsView v-if="statisticsOpen" :initial-metric="statisticsMetric" :month="statisticsMonth" :refresh-key="statisticsRefreshKey" />
+    <DashboardView v-else-if="activeView === 'dashboard'" @open-statistics="openStatistics" />
     <RefuelingsView v-else />
   </AppLayout>
 

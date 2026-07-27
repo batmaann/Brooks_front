@@ -10,6 +10,7 @@ import { useFinanceWorkspaceContext, useWorkspaceModalsContext, useWorkspaceUiCo
 const finance = useFinanceWorkspaceContext()
 const modals = useWorkspaceModalsContext()
 const ui = useWorkspaceUiContext()
+const emit = defineEmits<{ openStatistics: [metric: 'income' | 'expense' | 'saving' | 'total'] }>()
 
 const {
   addingTransaction,
@@ -71,6 +72,7 @@ const transactionSearchModel = computed({
   <FinanceSummary
     v-if="dashboardVisibility.summary"
     :summary="monthlySummary"
+    @open-statistics="emit('openStatistics', $event)"
   />
   <section class="finance-panel panel">
     <div class="section-heading">
