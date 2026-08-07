@@ -301,6 +301,14 @@ td .icon-button { width: 32px; height: 32px; }
 .about-content { padding: 22px; display: grid; gap: 12px; color: var(--muted); line-height: 1.55; }
 .about-content p { margin: 0; }
 .about-brand { font-family: 'Anton', 'Manrope', Arial, sans-serif; font-weight: 700; color: var(--ink); }
+.about-telegram-links { margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.about-telegram-link { min-height: 72px; padding: 13px 14px; display: flex; align-items: center; gap: 11px; color: var(--green); background: var(--green-soft); border: 1px solid #b8d8c8; border-radius: 7px; text-decoration: none; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.about-telegram-link:hover { transform: translateY(-2px); border-color: #82b99e; box-shadow: 0 8px 20px rgba(20, 40, 32, .09); }
+.about-telegram-link:focus-visible { outline: 3px solid rgba(22, 115, 75, .2); outline-offset: 2px; }
+.about-telegram-link > svg { flex: 0 0 auto; }
+.about-telegram-link span { min-width: 0; display: grid; gap: 2px; }
+.about-telegram-link strong { color: var(--ink); font-size: 13px; line-height: 1.35; }
+.about-telegram-link small { color: var(--muted); font-size: 11px; line-height: 1.35; }
 .delete-content { padding: 22px; display: grid; gap: 8px; color: var(--ink); }
 .delete-content p { margin: 0; font-weight: 800; }
 .delete-content span { color: var(--muted); font-size: 13px; }
@@ -411,3 +419,9 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .transaction-edit-row { background: #141f1b; }
 [data-theme="dark"] .error-banner { color: #ffb7b7; background: #351d1d; border-color: #6a3333; }
 [data-theme="dark"] .modal-backdrop { background: rgba(4, 8, 7, .72); }
+[data-theme="dark"] .about-telegram-link { color: #78e0a8; background: #183527; border-color: #315b47; }
+[data-theme="dark"] .about-telegram-link:hover { border-color: #4c896b; box-shadow: 0 8px 20px rgba(0, 0, 0, .24); }
+
+@media (max-width: 560px) {
+  .about-telegram-links { grid-template-columns: 1fr; }
+}
