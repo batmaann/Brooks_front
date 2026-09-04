@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Eye, Plus, Search, WalletCards } from '@lucide/vue'
-import { computed } from 'vue'
+import { Eye, Paperclip, Plus, Search, WalletCards } from '@lucide/vue'
+import { computed, ref } from 'vue'
 import FinanceSummary from '@/components/finance/FinanceSummary.vue'
+import TransactionImportModal from '@/components/finance/TransactionImportModal.vue'
 import TransactionBulkActions from '@/components/finance/TransactionBulkActions.vue'
 import TransactionColumnSettings from '@/components/finance/TransactionColumnSettings.vue'
 import TransactionTable from '@/components/finance/TransactionTable.vue'
@@ -33,6 +34,7 @@ const {
   finishTransactionColumnDrag,
   isTransactionSelected,
   monthlySummary,
+  refreshFinanceData,
   requestBulkTransactionDelete,
   sectionName,
   sections,
@@ -61,6 +63,7 @@ const {
 } = finance
 const { openModal, remove } = modals
 const { dashboardControlsOpen, saving, transactionSearch } = ui
+const importModalOpen = ref(false)
 
 const transactionSearchModel = computed({
   get: () => transactionSearch.value,
@@ -79,6 +82,7 @@ const transactionSearchModel = computed({
       <div class="finance-heading-main"><h2>Финансовые операции</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="transactionSearchModel" placeholder="Поиск по операциям, банку и описанию"></div></div>
       <div class="finance-heading-actions">
         <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction()"><Plus :size="18" /></button>
+        <button v-if="dashboardVisibility.attachFile" class="icon-button" title="Прикрепить файл" type="button" @click="importModalOpen = true"><Paperclip :size="18" /></button>
         <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="openModal('bankLabel')">Добавить банк</button>
         <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" @click="openModal('category')">Добавить категории</button>
         <div class="visibility-menu">
@@ -149,4 +153,11 @@ const transactionSearchModel = computed({
     />
     <div v-if="!transactions.length && !addingTransaction" class="empty-state"><WalletCards :size="28" /><strong>Финансовых операций пока нет</strong><span>Добавьте доход, трату или накопление.</span><button class="secondary-button" @click="startCreateTransaction()"><Plus :size="17" />Операция</button></div>
   </section>
+  <TransactionImportModal
+    v-if="importModalOpen"
+    :bank-labels="bankLabels"
+    :categories="categories"
+    @close="importModalOpen = false"
+    @imported="refreshFinanceData"
+  />
 </template>

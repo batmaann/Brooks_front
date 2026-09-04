@@ -2,6 +2,7 @@
 import type { TransactionSortKey } from '@/types/table'
 
 interface DashboardVisibility {
+  attachFile: boolean
   addBank: boolean
   addCategory: boolean
   summary: boolean
@@ -45,8 +46,8 @@ function updateDashboardVisibility(field: keyof DashboardVisibility, checked: bo
       <input disabled type="checkbox">
       <span>AI</span>
     </label>
-    <label class="disabled" title="В разработке">
-      <input disabled type="checkbox">
+    <label>
+      <input :checked="dashboardVisibility.attachFile" type="checkbox" @change="updateDashboardVisibility('attachFile', ($event.target as HTMLInputElement).checked)">
       <span>Прикрепить файл</span>
     </label>
     <div class="visibility-divider"></div>

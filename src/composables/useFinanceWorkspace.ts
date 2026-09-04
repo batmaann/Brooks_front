@@ -67,7 +67,12 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
   const categoryEditForm = reactive({ name: '', description: '' })
   const bankLabelForm = reactive({ name: '', description: '' })
   const categoryForm = reactive({ name: '', description: '' })
-  const dashboardVisibility = useStoredVisibility('brooks.dashboard.visibility', { summary: true, addBank: true, addCategory: true })
+  const dashboardVisibility = useStoredVisibility('brooks.dashboard.visibility', {
+    summary: true,
+    attachFile: true,
+    addBank: true,
+    addCategory: true,
+  })
   const transactionForm = reactive(defaultTransactionDraft())
   const transactionEditForm = reactive(defaultTransactionDraft())
   const editingTransactionId = ref<number | null>(null)
@@ -367,6 +372,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
     isTransactionSelected,
     keepExistingTransactionSelection,
     monthlySummary,
+    refreshFinanceData: loadData,
     requestBulkTransactionDelete,
     resetDictionaryEditors,
     sectionName,

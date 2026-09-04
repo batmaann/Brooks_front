@@ -75,6 +75,41 @@ export interface TransactionPayload {
   source?: TransactionSource
 }
 
+export type TransactionImportStatus = 'uploaded' | 'queued' | 'processing' | 'ready' | 'confirming' | 'confirmed' | 'failed' | 'cancelled'
+
+export interface TransactionImport {
+  id: string
+  status: TransactionImportStatus
+  original_filename: string
+  file_format: string
+  detected_bank: string
+  total_rows: number
+  created_rows: number
+  duplicate_rows: number
+  skipped_rows: number
+  error: string
+  confirmation_mode: 'detailed' | 'collapsed' | ''
+  created_at: string
+  completed_at: string | null
+}
+
+export interface TransactionImportItem {
+  id: string
+  transaction_import: string
+  row_number: number
+  date: string
+  transaction_type: TransactionType
+  amount: string
+  currency: string
+  description: string
+  bank_category: string
+  category_id: number | null
+  bank_label_id: number | null
+  category_reason: string
+  duplicate_status: string
+  selected: boolean
+}
+
 export type MonthlySummaryDirection = 'up' | 'down' | 'same' | 'new'
 
 export interface MonthlySummaryMetric {

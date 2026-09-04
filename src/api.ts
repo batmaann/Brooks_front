@@ -1,6 +1,7 @@
 import { reportServiceUnavailable } from '@/composables/useServiceAvailability'
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api'
+const AI_API_URL = import.meta.env.VITE_AI_API_BASE_URL || '/ai-api'
 
 export type ApiErrorPayload = Record<string, string | string[]>
 
@@ -27,16 +28,16 @@ export function configureAuthClient(config: AuthClientConfig) {
   authClient = config
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
   const token = authClient.getToken()
   const headers = new Headers(options.headers)
 
-  if (options.body) headers.set('Content-Type', 'application/json')
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Token ${token}`)
 
   let response: Response
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers })
+    response = await fetch(`${baseUrl}${path}`, { ...options, headers })
   } catch (error) {
     reportServiceUnavailable()
     throw error
@@ -55,6 +56,14 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   return data as T
+}
+
+export function api<T>(path: string, options: RequestInit = {}) {
+  return request<T>(API_URL, path, options)
+}
+
+export function aiApi<T>(path: string, options: RequestInit = {}) {
+  return request<T>(AI_API_URL, path, options)
 }
 
 export function listResult<T>(data: T[] | { results: T[] }): T[] {

@@ -16,5 +16,5 @@ export const navItems: NavItem[] = [
   { id: 'investments', label: 'Инвестиции', icon: ChartNoAxesCombined, disabled: true },
   { id: 'utilities', label: 'ЖКХ', icon: Home, disabled: true },
   { id: 'business', label: 'Бизнес', icon: BriefcaseBusiness, disabled: true },
-  { id: 'cryptocurrency', label: 'Криптавалюта', icon: Bitcoin, disabled: true },
+  { id: 'cryptocurrency', label: 'Криптовалюта', icon: Bitcoin, disabled: true },
 ]
