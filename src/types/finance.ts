@@ -106,7 +106,8 @@ export interface TransactionImportItem {
   category_id: number | null
   bank_label_id: number | null
   category_reason: string
-  duplicate_status: string
+  duplicate_status: 'none' | 'exact' | 'possible'
+  duplicate_transaction_id: number | null
   selected: boolean
 }
 

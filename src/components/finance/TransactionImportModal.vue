@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ClipboardPaste, FileClock, FileUp, Info, LoaderCircle, Paperclip, Upload, X } from '@lucide/vue'
+import { AlertTriangle, Check, ClipboardPaste, FileClock, FileUp, Info, LoaderCircle, Paperclip, Upload, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useFormatters } from '@/composables/useFormatters'
@@ -37,6 +37,11 @@ const openingImportId = ref<string | null>(null)
 const categorySavingItemId = ref<string | null>(null)
 const typeSavingItemId = ref<string | null>(null)
 const bankSavingItemId = ref<string | null>(null)
+const editingDescriptionItemId = ref<string | null>(null)
+const descriptionDraft = ref('')
+const descriptionSavingItemId = ref<string | null>(null)
+const duplicatesOnly = ref(false)
+const showDuplicateConfirm = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 const allowedFileExtensions = new Set(['csv', 'doc', 'docx', 'jpeg', 'jpg', 'ofd', 'ofx', 'pdf', 'png', 'webp', 'xls', 'xlsx'])
@@ -64,7 +69,13 @@ const modalTitle = computed(() => ({
 })[stage.value])
 
 const selectedItems = computed(() => items.value.filter((item) => selectedRowIds.value.includes(item.id)))
-const allRowsSelected = computed(() => Boolean(items.value.length) && selectedRowIds.value.length === items.value.length)
+const duplicateItems = computed(() => items.value.filter((item) => item.duplicate_status !== 'none'))
+const exactDuplicateItems = computed(() => items.value.filter((item) => item.duplicate_status === 'exact'))
+const possibleDuplicateItems = computed(() => items.value.filter((item) => item.duplicate_status === 'possible'))
+const safeItems = computed(() => items.value.filter((item) => item.duplicate_status === 'none'))
+const visibleItems = computed(() => duplicatesOnly.value ? duplicateItems.value : items.value)
+const selectedDuplicateItems = computed(() => selectedItems.value.filter((item) => item.duplicate_status !== 'none'))
+const allRowsSelected = computed(() => Boolean(safeItems.value.length) && safeItems.value.every((item) => selectedRowIds.value.includes(item.id)))
 function selectFile(file: File | undefined, fromClipboard = false) {
   if (!file) {
     if (fromClipboard) error.value = 'В буфере обмена нет файла. Текст и другие данные импортировать нельзя.'
@@ -160,7 +171,11 @@ function toggleRow(id: string) {
 }
 
 function toggleAllRows() {
-  selectedRowIds.value = allRowsSelected.value ? [] : items.value.map((item) => item.id)
+  selectedRowIds.value = allRowsSelected.value ? [] : safeItems.value.map((item) => item.id)
+}
+
+function selectAllIncludingDuplicates() {
+  selectedRowIds.value = items.value.map((item) => item.id)
 }
 
 async function applyBulkChange(field: 'category_id' | 'bank_label_id', rawValue: string) {
@@ -227,6 +242,37 @@ async function updateItemBank(item: TransactionImportItem, rawValue: string) {
   }
 }
 
+function startDescriptionEdit(item: TransactionImportItem) {
+  editingDescriptionItemId.value = item.id
+  descriptionDraft.value = item.description
+}
+
+function cancelDescriptionEdit() {
+  editingDescriptionItemId.value = null
+  descriptionDraft.value = ''
+}
+
+async function saveItemDescription(item: TransactionImportItem) {
+  if (descriptionSavingItemId.value === item.id) return
+  const description = descriptionDraft.value.trim()
+  if (description === item.description) {
+    cancelDescriptionEdit()
+    return
+  }
+  descriptionSavingItemId.value = item.id
+  error.value = ''
+  try {
+    const updated = await updateTransactionImportItem(item.id, { description })
+    const index = items.value.findIndex((current) => current.id === updated.id)
+    if (index !== -1) items.value[index] = updated
+    cancelDescriptionEdit()
+  } catch (requestError) {
+    error.value = requestError instanceof Error ? requestError.message : 'Не удалось изменить описание.'
+  } finally {
+    descriptionSavingItemId.value = null
+  }
+}
+
 async function pollImport() {
   if (!transactionImport.value) return
   try {
@@ -289,8 +335,13 @@ async function openReadyImport(item: TransactionImport) {
   }
 }
 
-async function acceptImport() {
+async function acceptImport(duplicatesConfirmed = false) {
   if (!transactionImport.value || !selectedItems.value.length) return
+  if (selectedDuplicateItems.value.length && !duplicatesConfirmed) {
+    showDuplicateConfirm.value = true
+    return
+  }
+  showDuplicateConfirm.value = false
   error.value = ''
   stage.value = 'confirming'
   try {
@@ -351,7 +402,7 @@ function formatFileSize(bytes: number) {
       ><Info :size="16" /></button>
     </template>
     <aside v-if="showInfo" id="transaction-import-info" class="transaction-import-info" role="note">
-      <p>Вы можете загрузить файл с операциями для добавления транзакций. Для наиболее точного анализа рекомендуем использовать понятный структурированный формат, в котором указаны дата, категория, сумма и тип операции — доход или расход.</p>
+      <p>Вы можете загрузить файл с операциями для добавления транзакций. Для наиболее точной обработки рекомендуем использовать понятный структурированный формат, в котором для каждой операции указаны <strong>дата</strong>, <strong>тип операции</strong> — трата, доход или накопление, <strong>категория</strong>, <strong>описание</strong>, <strong>сумма</strong> и <strong>банк</strong>.</p>
       <p>Сервис не принимает архивы и не предназначен для обработки файлов большого объёма: такие документы могут быть обработаны неточно или с ошибкой. Искусственный интеллект предложит категории на основе категорий, созданных в вашем аккаунте.</p>
       <p>Мы не сохраняем реквизиты банковских карт и CVV-коды. Пожалуйста, перед загрузкой убедитесь, что файл не содержит избыточных персональных или платёжных данных. Мы принимаем меры для защиты информации и снижения риска её раскрытия.</p>
     </aside>
@@ -360,6 +411,13 @@ function formatFileSize(bytes: number) {
         <div><Info :size="20" /><strong id="transaction-import-ai-dialog-title">Категория Brooks</strong></div>
         <p>Категорию назначает AI на основе категорий, которые вы уже создали в Brooks. AI может ошибиться с назначением, поэтому внимательно проверьте значения в этой колонке перед принятием импорта.</p>
         <button class="primary-button" type="button" @click="showAiCategoryInfo = false">Понятно</button>
+      </section>
+    </div>
+    <div v-if="showDuplicateConfirm" class="transaction-import-ai-dialog-backdrop" @mousedown.self="showDuplicateConfirm = false">
+      <section class="transaction-import-ai-dialog transaction-import-duplicate-dialog" role="alertdialog" aria-modal="true" aria-labelledby="transaction-import-duplicate-dialog-title">
+        <div><AlertTriangle :size="22" /><strong id="transaction-import-duplicate-dialog-title">Возможны повторные операции</strong></div>
+        <p>Вы выбрали {{ selectedDuplicateItems.length }} {{ selectedDuplicateItems.length === 1 ? 'операцию, которая уже существует' : 'операции, которые уже существуют' }} в Brooks. Их импорт создаст повторные записи.</p>
+        <div class="transaction-import-dialog-actions"><button class="secondary-button" type="button" @click="showDuplicateConfirm = false">Вернуться к проверке</button><button class="danger-button" type="button" @click="acceptImport(true)">Всё равно импортировать</button></div>
       </section>
     </div>
     <div v-if="stage === 'select'" class="transaction-import-content">
@@ -419,7 +477,8 @@ function formatFileSize(bytes: number) {
     <div v-else-if="stage === 'review'" class="transaction-import-review">
       <p v-if="error" class="transaction-import-error">{{ error }}</p>
       <div class="transaction-import-review-summary"><strong>Найдено операций: {{ items.length }}</strong><span>Проверьте результат распознавания перед импортом.</span></div>
-      <div class="transaction-import-actions transaction-import-actions-top"><button class="secondary-button transaction-import-cancel-button" type="button" title="Отменить импорт" @click="close">Отмена</button><span class="transaction-import-accept-wrap" :title="selectedItems.length ? '' : 'Для принятия импорта надо выбрать транзакции'"><button class="primary-button" type="button" :disabled="!selectedItems.length" @click="acceptImport"><Check :size="17" />Принять импорт ({{ selectedItems.length }})</button></span></div>
+      <div v-if="duplicateItems.length" class="transaction-import-duplicate-warning"><AlertTriangle :size="20" /><div><strong>Найдены операции, которые могут создать дубли</strong><span>Точных дублей: {{ exactDuplicateItems.length }}<template v-if="possibleDuplicateItems.length"> · Возможных: {{ possibleDuplicateItems.length }}</template>. Они не выбираются кнопкой «Выбрать все».</span></div><button class="secondary-button" type="button" @click="duplicatesOnly = !duplicatesOnly">{{ duplicatesOnly ? 'Показать все' : 'Показать только дубли' }}</button><button class="secondary-button transaction-import-select-duplicates" type="button" @click="selectAllIncludingDuplicates">Выбрать вместе с дублями</button></div>
+      <div class="transaction-import-actions transaction-import-actions-top"><button class="secondary-button transaction-import-cancel-button" type="button" title="Отменить импорт" @click="close">Отмена</button><span class="transaction-import-accept-wrap" :title="selectedItems.length ? '' : 'Для принятия импорта надо выбрать транзакции'"><button class="primary-button" type="button" :disabled="!selectedItems.length" @click="acceptImport()"><Check :size="17" />Принять импорт ({{ selectedItems.length }})</button></span></div>
       <div v-if="selectedRowIds.length" class="transaction-import-bulk-actions">
         <strong>Выбрано: {{ selectedRowIds.length }}</strong>
         <select v-model="bulkCategory" :disabled="bulkSaving" @change="applyBulkChange('category_id', bulkCategory)">
@@ -433,8 +492,8 @@ function formatFileSize(bytes: number) {
       </div>
       <div class="transaction-import-table-wrap">
         <table class="transaction-import-table">
-          <thead><tr><th class="transaction-import-select"><input type="checkbox" :checked="allRowsSelected" aria-label="Выбрать все строки" @change="toggleAllRows"></th><th>№</th><th>Дата</th><th>Тип операции</th><th>Категория из файла</th><th><span class="transaction-import-ai-heading">Категория Brooks<button type="button" title="Как AI назначает категорию" aria-label="Информация о категории Brooks" @click="showAiCategoryInfo = true"><Info :size="12" /></button></span></th><th>Описание</th><th>Сумма</th><th>Банк</th></tr></thead>
-          <tbody><tr v-for="item in items" :key="item.id" :class="{ selected: selectedRowIds.includes(item.id) }"><td class="transaction-import-select"><input type="checkbox" :checked="selectedRowIds.includes(item.id)" :aria-label="`Выбрать строку ${item.row_number}`" @change="toggleRow(item.id)"></td><td>{{ item.row_number }}</td><td>{{ formatDate(item.date) }}</td><td class="transaction-import-type-cell"><select class="transaction-import-type-select" :class="item.transaction_type" :value="item.transaction_type" :disabled="typeSavingItemId === item.id" title="Изменить тип операции" @mousedown="openSelectOnFirstClick" @change="updateItemType(item, ($event.target as HTMLSelectElement).value as TransactionType)"><option value="expense">Трата</option><option value="income">Доход</option><option value="saving">Накопление</option></select></td><td>{{ item.bank_category || '—' }}</td><td class="transaction-import-category-cell" :title="item.category_reason"><select class="transaction-import-category-select" :class="{ empty: item.category_id === null }" :value="item.category_id ?? '__clear__'" :disabled="categorySavingItemId === item.id" title="Изменить категорию Brooks" @mousedown="openSelectOnFirstClick" @change="updateItemCategory(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без категории</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td><td class="transaction-import-description" :title="item.description">{{ item.description || '—' }}</td><td class="transaction-import-amount">{{ formatAmount(item) }}</td><td class="transaction-import-bank-cell"><select class="transaction-import-bank-select" :class="{ empty: item.bank_label_id === null }" :value="item.bank_label_id ?? '__clear__'" :disabled="bankSavingItemId === item.id" title="Изменить банк" @mousedown="openSelectOnFirstClick" @change="updateItemBank(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без банка</option><option v-for="bank in bankLabels" :key="bank.id" :value="bank.id">{{ bank.name }}</option></select></td></tr></tbody>
+          <thead><tr><th class="transaction-import-select"><input type="checkbox" :checked="allRowsSelected" title="Выбрать все операции без дублей" aria-label="Выбрать все операции без дублей" @change="toggleAllRows"></th><th>№</th><th>Дата</th><th>Тип операции</th><th>Категория из файла</th><th><span class="transaction-import-ai-heading">Категория Brooks<button type="button" title="Как AI назначает категорию" aria-label="Информация о категории Brooks" @click="showAiCategoryInfo = true"><Info :size="12" /></button></span></th><th>Описание</th><th>Сумма</th><th>Банк</th></tr></thead>
+          <tbody><tr v-for="item in visibleItems" :key="item.id" :class="{ selected: selectedRowIds.includes(item.id), 'duplicate-exact': item.duplicate_status === 'exact', 'duplicate-possible': item.duplicate_status === 'possible' }"><td class="transaction-import-select"><input type="checkbox" :checked="selectedRowIds.includes(item.id)" :aria-label="`Выбрать строку ${item.row_number}`" @change="toggleRow(item.id)"></td><td><span class="transaction-import-row-number">{{ item.row_number }}<span v-if="item.duplicate_status !== 'none'" class="transaction-import-duplicate-badge" :class="item.duplicate_status" :title="item.duplicate_transaction_id ? `Совпадает с операцией Brooks №${item.duplicate_transaction_id}` : 'Найдена похожая операция в Brooks'">{{ item.duplicate_status === 'exact' ? 'Точный дубль' : 'Возможный дубль' }}</span></span></td><td>{{ formatDate(item.date) }}</td><td class="transaction-import-type-cell"><select class="transaction-import-type-select" :class="item.transaction_type" :value="item.transaction_type" :disabled="typeSavingItemId === item.id" title="Изменить тип операции" @mousedown="openSelectOnFirstClick" @change="updateItemType(item, ($event.target as HTMLSelectElement).value as TransactionType)"><option value="expense">Трата</option><option value="income">Доход</option><option value="saving">Накопление</option></select></td><td>{{ item.bank_category || '—' }}</td><td class="transaction-import-category-cell" :title="item.category_reason"><select class="transaction-import-category-select" :class="{ empty: item.category_id === null }" :value="item.category_id ?? '__clear__'" :disabled="categorySavingItemId === item.id" title="Изменить категорию Brooks" @mousedown="openSelectOnFirstClick" @change="updateItemCategory(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без категории</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td><td class="transaction-import-description"><input v-if="editingDescriptionItemId === item.id" v-model="descriptionDraft" :disabled="descriptionSavingItemId === item.id" autofocus maxlength="500" aria-label="Описание операции" @keydown.enter.prevent="saveItemDescription(item)" @keydown.esc.prevent="cancelDescriptionEdit" @blur="saveItemDescription(item)"><button v-else type="button" :title="item.description || 'Добавить описание'" @click="startDescriptionEdit(item)">{{ item.description || 'Добавить описание' }}</button></td><td class="transaction-import-amount">{{ formatAmount(item) }}</td><td class="transaction-import-bank-cell"><select class="transaction-import-bank-select" :class="{ empty: item.bank_label_id === null }" :value="item.bank_label_id ?? '__clear__'" :disabled="bankSavingItemId === item.id" title="Изменить банк" @mousedown="openSelectOnFirstClick" @change="updateItemBank(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без банка</option><option v-for="bank in bankLabels" :key="bank.id" :value="bank.id">{{ bank.name }}</option></select></td></tr></tbody>
         </table>
       </div>
     </div>

@@ -47,7 +47,7 @@ export function confirmTransactionImport(id: string, itemIds: string[]) {
   })
 }
 
-export function updateTransactionImportItem(id: string, payload: { category_id?: number | null, bank_label_id?: number | null, transaction_type?: TransactionImportItem['transaction_type'] }) {
+export function updateTransactionImportItem(id: string, payload: { category_id?: number | null, bank_label_id?: number | null, description?: string, transaction_type?: TransactionImportItem['transaction_type'] }) {
   return aiApi<TransactionImportItem>(`/draft-transactions/${id}/`, {
     method: 'PATCH',
     body: JSON.stringify(payload),

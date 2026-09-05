@@ -304,6 +304,7 @@ td .icon-button { width: 32px; height: 32px; }
 .transaction-import-info-button:hover, .transaction-import-info-button[aria-expanded="true"] { color: #8a6500; border-color: #e8cb73; background: #fff7d6; }
 .transaction-import-info { margin: 18px 22px 0; padding: 14px 16px; display: grid; gap: 9px; color: var(--muted); border: 1px solid #c9ddd1; border-radius: 7px; background: #f4faf6; font-size: 12px; line-height: 1.55; }
 .transaction-import-info p { margin: 0; }
+.transaction-import-info p strong { color: var(--ink); font-weight: 800; }
 .transaction-import-dropzone { min-height: 270px; padding: 28px; display: grid; place-content: center; justify-items: center; gap: 9px; color: var(--muted); border: 2px dashed #b9c8c0; border-radius: 8px; background: #f8fbf9; text-align: center; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 .transaction-import-dropzone:hover, .transaction-import-dropzone.dragging { border-color: var(--green); background: var(--green-soft); }
 .transaction-import-dropzone.dragging { transform: scale(1.01); }
@@ -338,14 +339,22 @@ td .icon-button { width: 32px; height: 32px; }
 .transaction-import-review { padding: 22px; display: grid; gap: 16px; }
 .transaction-import-review-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; }
 .transaction-import-review-summary strong { color: var(--ink); font-size: 13px; }
+.transaction-import-duplicate-warning { padding: 12px 14px; display: flex; align-items: center; gap: 11px; color: #9b4d4d; border: 1px solid #e1bcbc; border-radius: 7px; background: #fff1f2; }
+.transaction-import-duplicate-warning > svg { flex: 0 0 auto; }
+.transaction-import-duplicate-warning > div { min-width: 180px; margin-right: auto; display: grid; gap: 3px; }
+.transaction-import-duplicate-warning strong { font-size: 12px; }
+.transaction-import-duplicate-warning span { color: #7f5a5a; font-size: 10px; }
+.transaction-import-duplicate-warning .secondary-button { min-height: 34px; padding: 0 11px; font-size: 10px; }
+.transaction-import-select-duplicates:hover { color: var(--danger); border-color: #e1bcbc; background: #fff7f7; }
 .transaction-import-bulk-actions { min-height: 48px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; color: var(--muted); border: 1px solid #c9ddd1; border-radius: 7px; background: #f4faf6; font-size: 11px; }
 .transaction-import-bulk-actions strong { margin-right: auto; color: var(--ink); white-space: nowrap; }
 .transaction-import-bulk-actions select { min-width: 165px; min-height: 34px; padding: 0 30px 0 10px; font-size: 11px; }
 .transaction-import-bulk-actions .text-button { white-space: nowrap; }
 .transaction-import-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; }
 .transaction-import-table { width: 100%; min-width: 850px; border-collapse: collapse; }
-.transaction-import-table th, .transaction-import-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 11px; vertical-align: top; }
+.transaction-import-table th, .transaction-import-table td { height: 52px; padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 11px; vertical-align: middle; }
 .transaction-import-table th { color: var(--muted); background: #f7f9f8; white-space: nowrap; }
+.transaction-import-table tbody td { white-space: nowrap; }
 .transaction-import-ai-heading { display: inline-flex; align-items: center; gap: 6px; }
 .transaction-import-ai-heading button { width: 20px; height: 20px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 4px; }
 .transaction-import-ai-heading button:hover { color: #8a6500; background: #ffe88a; border-color: #d8b94f; }
@@ -355,10 +364,20 @@ td .icon-button { width: 32px; height: 32px; }
 .transaction-import-ai-dialog strong { color: var(--ink); font-size: 16px; }
 .transaction-import-ai-dialog p { margin: 0; font-size: 13px; line-height: 1.6; }
 .transaction-import-ai-dialog .primary-button { justify-self: end; }
+.transaction-import-duplicate-dialog > div:first-child { color: var(--danger); }
+.transaction-import-dialog-actions { display: flex !important; justify-content: flex-end; gap: 9px; color: inherit !important; }
 .transaction-import-table tbody tr:last-child td { border-bottom: 0; }
 .transaction-import-table tbody tr:hover td { background: #f7faf8; }
 .transaction-import-table tbody tr.selected td { background: var(--green-soft); }
-.transaction-import-select { width: 38px; text-align: center !important; }
+.transaction-import-table tbody tr.duplicate-exact td { background: #fff1f2; }
+.transaction-import-table tbody tr.duplicate-possible td { background: #fff8e5; }
+.transaction-import-table tbody tr.duplicate-exact:hover td { background: #fde4e7; }
+.transaction-import-table tbody tr.duplicate-possible:hover td { background: #fff1c7; }
+.transaction-import-row-number { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.transaction-import-duplicate-badge { min-height: 20px; padding: 0 7px; display: inline-flex; align-items: center; border-radius: 999px; font-size: 8px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.transaction-import-duplicate-badge.exact { color: #9b4d4d; background: #f3d4d7; }
+.transaction-import-duplicate-badge.possible { color: #8a6517; background: #f6e5ae; }
+.transaction-import-select { width: 38px; text-align: center !important; vertical-align: middle !important; }
 .transaction-import-select input { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
 .transaction-import-category-cell { min-width: 180px; }
 .transaction-import-type-cell { min-width: 120px; }
@@ -383,7 +402,10 @@ td .icon-button { width: 32px; height: 32px; }
 .transaction-import-type-select.saving { color: #8a6517; }
 .transaction-import-type-select option { color: var(--ink); background: var(--surface); }
 .transaction-import-amount { font-weight: 800; white-space: nowrap; }
-.transaction-import-description { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-import-description { width: 220px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-import-description button { width: 100%; padding: 5px 7px; overflow: hidden; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; font: inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-import-description button:hover { color: var(--green); background: var(--green-soft); }
+.transaction-import-description input { width: 100%; min-width: 180px; height: 32px; padding: 0 8px; font-size: 11px; }
 .transaction-import-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .transaction-import-actions-top { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .transaction-import-cancel-button:hover { color: var(--danger); border-color: #e1bcbc; background: #fff1f2; }
@@ -501,6 +523,14 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .transaction-import-type-select.saving { color: #f2c75b; }
 [data-theme="dark"] .transaction-import-type-select option { color: #e4eee9; background: #151f1c; }
 [data-theme="dark"] .transaction-import-table tbody tr.selected td { background: #183527; }
+[data-theme="dark"] .transaction-import-duplicate-warning { color: #ffa1a1; border-color: #704040; background: #2f1d1d; }
+[data-theme="dark"] .transaction-import-duplicate-warning span { color: #d6aaa7; }
+[data-theme="dark"] .transaction-import-table tbody tr.duplicate-exact td { background: #2f1d1d; }
+[data-theme="dark"] .transaction-import-table tbody tr.duplicate-possible td { background: #382d17; }
+[data-theme="dark"] .transaction-import-table tbody tr.duplicate-exact:hover td { background: #3b2020; }
+[data-theme="dark"] .transaction-import-table tbody tr.duplicate-possible:hover td { background: #493a1b; }
+[data-theme="dark"] .transaction-import-duplicate-badge.exact { color: #ffa1a1; background: #51292b; }
+[data-theme="dark"] .transaction-import-duplicate-badge.possible { color: #f2c75b; background: #57451f; }
 [data-theme="dark"] .transaction-import-bulk-actions { border-color: #3d604e; background: #12231a; }
 [data-theme="dark"] .segmented-control { background: #202b27; border-color: #394842; }
 [data-theme="dark"] .segmented-control button { color: #aebbb5; }
