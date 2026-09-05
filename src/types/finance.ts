@@ -111,6 +111,27 @@ export interface TransactionImportItem {
   selected: boolean
 }
 
+export interface CollapsedTransactionImportGroup {
+  transaction_type: TransactionType
+  currency: string
+  category_id: number | null
+  bank_label_id: number | null
+  amount: string
+  items_count: number
+  date_from: string
+  date_to: string
+  item_ids: string[]
+}
+
+export interface CollapsedTransactionImport {
+  source_items_count: number
+  collapsed_items_count: number
+  grouped_items_count: number
+  individual_items_count: number
+  items: CollapsedTransactionImportGroup[]
+  individual_items: TransactionImportItem[]
+}
+
 export type MonthlySummaryDirection = 'up' | 'down' | 'same' | 'new'
 
 export interface MonthlySummaryMetric {

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { AlertTriangle, Check, ClipboardPaste, FileClock, FileUp, Info, LoaderCircle, Paperclip, Upload, X } from '@lucide/vue'
+import { AlertTriangle, ArrowLeft, Check, ClipboardPaste, Combine, FileClock, FileUp, Info, LoaderCircle, Paperclip, Upload, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useFormatters } from '@/composables/useFormatters'
-import { confirmTransactionImport, getTransactionImport, getTransactionImportItems, getTransactionImports, updateTransactionImportItem, uploadTransactionImport } from '@/services/transactionService'
-import type { BankLabel, Category, TransactionImport, TransactionImportItem, TransactionType } from '@/types/finance'
+import { collapseTransactionImport, confirmTransactionImport, getTransactionImport, getTransactionImportItems, getTransactionImports, updateTransactionImportItem, uploadTransactionImport } from '@/services/transactionService'
+import type { BankLabel, Category, CollapsedTransactionImport, CollapsedTransactionImportGroup, TransactionImport, TransactionImportItem, TransactionType } from '@/types/finance'
 
-defineProps<{
+const props = defineProps<{
   bankLabels: BankLabel[]
   categories: Category[]
 }>()
@@ -42,6 +42,9 @@ const descriptionDraft = ref('')
 const descriptionSavingItemId = ref<string | null>(null)
 const duplicatesOnly = ref(false)
 const showDuplicateConfirm = ref(false)
+const collapsedImport = ref<CollapsedTransactionImport | null>(null)
+const collapseLoading = ref(false)
+const selectedCollapsedGroupKeys = ref<string[]>([])
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 const allowedFileExtensions = new Set(['csv', 'doc', 'docx', 'jpeg', 'jpg', 'ofd', 'ofx', 'pdf', 'png', 'webp', 'xls', 'xlsx'])
@@ -74,8 +77,60 @@ const exactDuplicateItems = computed(() => items.value.filter((item) => item.dup
 const possibleDuplicateItems = computed(() => items.value.filter((item) => item.duplicate_status === 'possible'))
 const safeItems = computed(() => items.value.filter((item) => item.duplicate_status === 'none'))
 const visibleItems = computed(() => duplicatesOnly.value ? duplicateItems.value : items.value)
-const selectedDuplicateItems = computed(() => selectedItems.value.filter((item) => item.duplicate_status !== 'none'))
+const collapsedGroupKey = (group: CollapsedTransactionImportGroup) => `${group.transaction_type}:${group.currency}:${group.category_id ?? 'none'}:${group.bank_label_id ?? 'none'}`
+const selectedCollapsedGroups = computed(() => collapsedImport.value?.items.filter((group) => selectedCollapsedGroupKeys.value.includes(collapsedGroupKey(group))) || [])
+const confirmationItemIds = computed(() => isCollapsed.value
+  ? selectedCollapsedGroups.value.flatMap((group) => group.item_ids)
+  : selectedItems.value.map((item) => item.id))
+const confirmationItems = computed(() => {
+  const ids = new Set(confirmationItemIds.value)
+  return items.value.filter((item) => ids.has(item.id))
+})
+const selectedDuplicateItems = computed(() => confirmationItems.value.filter((item) => item.duplicate_status !== 'none'))
+const acceptedRowsCount = computed(() => isCollapsed.value ? selectedCollapsedGroups.value.length : selectedItems.value.length)
+const allCollapsedGroupsSelected = computed(() => Boolean(collapsedImport.value?.items.length) && selectedCollapsedGroupKeys.value.length === collapsedImport.value?.items.length)
 const allRowsSelected = computed(() => Boolean(safeItems.value.length) && safeItems.value.every((item) => selectedRowIds.value.includes(item.id)))
+const isCollapsed = computed(() => collapsedImport.value !== null)
+const categoryName = (id: number | null) => id === null ? 'Без категории' : (props.categories.find((category) => category.id === id)?.name || `Категория #${id}`)
+const bankName = (id: number | null) => id === null ? 'Без банка' : (props.bankLabels.find((bank) => bank.id === id)?.name || `Банк #${id}`)
+const transactionTypeName = (type: TransactionType) => ({ expense: 'Трата', income: 'Доход', saving: 'Накопление' })[type]
+
+function formatCollapsedAmount(item: CollapsedTransactionImportGroup) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: item.currency || 'RUB' }).format(Number(item.amount))
+}
+
+async function toggleCollapsedView() {
+  if (isCollapsed.value) {
+    collapsedImport.value = null
+    selectedCollapsedGroupKeys.value = []
+    return
+  }
+  if (!transactionImport.value || !selectedRowIds.value.length) return
+  collapseLoading.value = true
+  error.value = ''
+  try {
+    collapsedImport.value = await collapseTransactionImport(transactionImport.value.id, selectedRowIds.value)
+    selectedCollapsedGroupKeys.value = collapsedImport.value.items.map(collapsedGroupKey)
+  } catch (requestError) {
+    error.value = requestError instanceof Error ? requestError.message : 'Не удалось схлопнуть операции.'
+  } finally {
+    collapseLoading.value = false
+  }
+}
+
+function toggleCollapsedGroup(group: CollapsedTransactionImportGroup) {
+  const key = collapsedGroupKey(group)
+  selectedCollapsedGroupKeys.value = selectedCollapsedGroupKeys.value.includes(key)
+    ? selectedCollapsedGroupKeys.value.filter((current) => current !== key)
+    : [...selectedCollapsedGroupKeys.value, key]
+}
+
+function toggleAllCollapsedGroups() {
+  if (!collapsedImport.value) return
+  selectedCollapsedGroupKeys.value = selectedCollapsedGroupKeys.value.length === collapsedImport.value.items.length
+    ? []
+    : collapsedImport.value.items.map(collapsedGroupKey)
+}
 function selectFile(file: File | undefined, fromClipboard = false) {
   if (!file) {
     if (fromClipboard) error.value = 'В буфере обмена нет файла. Текст и другие данные импортировать нельзя.'
@@ -336,7 +391,7 @@ async function openReadyImport(item: TransactionImport) {
 }
 
 async function acceptImport(duplicatesConfirmed = false) {
-  if (!transactionImport.value || !selectedItems.value.length) return
+  if (!transactionImport.value || !confirmationItemIds.value.length) return
   if (selectedDuplicateItems.value.length && !duplicatesConfirmed) {
     showDuplicateConfirm.value = true
     return
@@ -345,7 +400,7 @@ async function acceptImport(duplicatesConfirmed = false) {
   error.value = ''
   stage.value = 'confirming'
   try {
-    transactionImport.value = await confirmTransactionImport(transactionImport.value.id, selectedItems.value.map((item) => item.id))
+    transactionImport.value = await confirmTransactionImport(transactionImport.value.id, confirmationItemIds.value, isCollapsed.value ? 'collapsed' : 'detailed')
     await pollConfirmation()
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось импортировать операции.'
@@ -476,10 +531,10 @@ function formatFileSize(bytes: number) {
     </div>
     <div v-else-if="stage === 'review'" class="transaction-import-review">
       <p v-if="error" class="transaction-import-error">{{ error }}</p>
-      <div class="transaction-import-review-summary"><strong>Найдено операций: {{ items.length }}</strong><span>Проверьте результат распознавания перед импортом.</span></div>
-      <div v-if="duplicateItems.length" class="transaction-import-duplicate-warning"><AlertTriangle :size="20" /><div><strong>Найдены операции, которые могут создать дубли</strong><span>Точных дублей: {{ exactDuplicateItems.length }}<template v-if="possibleDuplicateItems.length"> · Возможных: {{ possibleDuplicateItems.length }}</template>. Они не выбираются кнопкой «Выбрать все».</span></div><button class="secondary-button" type="button" @click="duplicatesOnly = !duplicatesOnly">{{ duplicatesOnly ? 'Показать все' : 'Показать только дубли' }}</button><button class="secondary-button transaction-import-select-duplicates" type="button" @click="selectAllIncludingDuplicates">Выбрать вместе с дублями</button></div>
-      <div class="transaction-import-actions transaction-import-actions-top"><button class="secondary-button transaction-import-cancel-button" type="button" title="Отменить импорт" @click="close">Отмена</button><span class="transaction-import-accept-wrap" :title="selectedItems.length ? '' : 'Для принятия импорта надо выбрать транзакции'"><button class="primary-button" type="button" :disabled="!selectedItems.length" @click="acceptImport()"><Check :size="17" />Принять импорт ({{ selectedItems.length }})</button></span></div>
-      <div v-if="selectedRowIds.length" class="transaction-import-bulk-actions">
+      <div class="transaction-import-review-summary"><strong>{{ isCollapsed ? `После схлопывания: ${collapsedImport?.collapsed_items_count}` : `Найдено операций: ${items.length}` }}</strong><span>{{ isCollapsed ? `Объединено ${collapsedImport?.source_items_count} выбранных операций.` : 'Проверьте результат распознавания перед импортом.' }}</span></div>
+      <div v-if="!isCollapsed && duplicateItems.length" class="transaction-import-duplicate-warning"><AlertTriangle :size="20" /><div><strong>Найдены операции, которые могут создать дубли</strong><span>Точных дублей: {{ exactDuplicateItems.length }}<template v-if="possibleDuplicateItems.length"> · Возможных: {{ possibleDuplicateItems.length }}</template>. Они не выбираются кнопкой «Выбрать все».</span></div><button class="secondary-button" type="button" @click="duplicatesOnly = !duplicatesOnly">{{ duplicatesOnly ? 'Показать все' : 'Показать только дубли' }}</button><button class="secondary-button transaction-import-select-duplicates" type="button" @click="selectAllIncludingDuplicates">Выбрать вместе с дублями</button></div>
+      <div class="transaction-import-actions transaction-import-actions-top"><button class="secondary-button transaction-import-collapse-button" :class="{ active: !isCollapsed && Boolean(selectedItems.length) }" type="button" :disabled="collapseLoading || (!isCollapsed && !selectedItems.length)" :title="isCollapsed ? 'Вернуть подробный список' : selectedItems.length ? 'Схлопнуть выбранные операции' : 'Для схлопывания транзакций выберите транзакции'" @click="toggleCollapsedView"><LoaderCircle v-if="collapseLoading" class="transaction-import-spinner" :size="17" /><ArrowLeft v-else-if="isCollapsed" :size="17" /><Combine v-else :size="17" />{{ isCollapsed ? 'Назад' : 'Схлопнуть' }}<template v-if="!isCollapsed && selectedItems.length"> ({{ selectedItems.length }})</template></button><span class="transaction-import-accept-wrap" :title="acceptedRowsCount ? '' : 'Для принятия импорта надо выбрать транзакции'"><button class="primary-button" type="button" :disabled="!acceptedRowsCount" @click="acceptImport()"><Check :size="17" />Принять импорт ({{ acceptedRowsCount }})</button></span></div>
+      <div v-if="!isCollapsed && selectedRowIds.length" class="transaction-import-bulk-actions">
         <strong>Выбрано: {{ selectedRowIds.length }}</strong>
         <select v-model="bulkCategory" :disabled="bulkSaving" @change="applyBulkChange('category_id', bulkCategory)">
           <option value="">Изменить категорию</option><option value="__clear__">Без категории</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
@@ -490,10 +545,18 @@ function formatFileSize(bytes: number) {
         <span v-if="bulkSaving">Сохраняем…</span>
         <button class="text-button" type="button" :disabled="bulkSaving" @click="selectedRowIds = []">Снять выделение</button>
       </div>
-      <div class="transaction-import-table-wrap">
+      <div v-if="!isCollapsed" class="transaction-import-table-wrap">
         <table class="transaction-import-table">
           <thead><tr><th class="transaction-import-select"><input type="checkbox" :checked="allRowsSelected" title="Выбрать все операции без дублей" aria-label="Выбрать все операции без дублей" @change="toggleAllRows"></th><th>№</th><th>Дата</th><th>Тип операции</th><th>Категория из файла</th><th><span class="transaction-import-ai-heading">Категория Brooks<button type="button" title="Как AI назначает категорию" aria-label="Информация о категории Brooks" @click="showAiCategoryInfo = true"><Info :size="12" /></button></span></th><th>Описание</th><th>Сумма</th><th>Банк</th></tr></thead>
           <tbody><tr v-for="item in visibleItems" :key="item.id" :class="{ selected: selectedRowIds.includes(item.id), 'duplicate-exact': item.duplicate_status === 'exact', 'duplicate-possible': item.duplicate_status === 'possible' }"><td class="transaction-import-select"><input type="checkbox" :checked="selectedRowIds.includes(item.id)" :aria-label="`Выбрать строку ${item.row_number}`" @change="toggleRow(item.id)"></td><td><span class="transaction-import-row-number">{{ item.row_number }}<span v-if="item.duplicate_status !== 'none'" class="transaction-import-duplicate-badge" :class="item.duplicate_status" :title="item.duplicate_transaction_id ? `Совпадает с операцией Brooks №${item.duplicate_transaction_id}` : 'Найдена похожая операция в Brooks'">{{ item.duplicate_status === 'exact' ? 'Точный дубль' : 'Возможный дубль' }}</span></span></td><td>{{ formatDate(item.date) }}</td><td class="transaction-import-type-cell"><select class="transaction-import-type-select" :class="item.transaction_type" :value="item.transaction_type" :disabled="typeSavingItemId === item.id" title="Изменить тип операции" @mousedown="openSelectOnFirstClick" @change="updateItemType(item, ($event.target as HTMLSelectElement).value as TransactionType)"><option value="expense">Трата</option><option value="income">Доход</option><option value="saving">Накопление</option></select></td><td>{{ item.bank_category || '—' }}</td><td class="transaction-import-category-cell" :title="item.category_reason"><select class="transaction-import-category-select" :class="{ empty: item.category_id === null }" :value="item.category_id ?? '__clear__'" :disabled="categorySavingItemId === item.id" title="Изменить категорию Brooks" @mousedown="openSelectOnFirstClick" @change="updateItemCategory(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без категории</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td><td class="transaction-import-description"><input v-if="editingDescriptionItemId === item.id" v-model="descriptionDraft" :disabled="descriptionSavingItemId === item.id" autofocus maxlength="500" aria-label="Описание операции" @keydown.enter.prevent="saveItemDescription(item)" @keydown.esc.prevent="cancelDescriptionEdit" @blur="saveItemDescription(item)"><button v-else type="button" :title="item.description || 'Добавить описание'" @click="startDescriptionEdit(item)">{{ item.description || 'Добавить описание' }}</button></td><td class="transaction-import-amount">{{ formatAmount(item) }}</td><td class="transaction-import-bank-cell"><select class="transaction-import-bank-select" :class="{ empty: item.bank_label_id === null }" :value="item.bank_label_id ?? '__clear__'" :disabled="bankSavingItemId === item.id" title="Изменить банк" @mousedown="openSelectOnFirstClick" @change="updateItemBank(item, ($event.target as HTMLSelectElement).value)"><option value="__clear__">Без банка</option><option v-for="bank in bankLabels" :key="bank.id" :value="bank.id">{{ bank.name }}</option></select></td></tr></tbody>
+        </table>
+      </div>
+      <div v-else class="transaction-import-table-wrap">
+        <table class="transaction-import-table transaction-import-collapsed-table">
+          <thead><tr><th class="transaction-import-select"><input type="checkbox" :checked="allCollapsedGroupsSelected" title="Выбрать все схлопнутые операции" @change="toggleAllCollapsedGroups"></th><th>Операций</th><th>Период</th><th>Тип операции</th><th>Категория Brooks</th><th>Сумма</th><th>Банк</th></tr></thead>
+          <tbody>
+            <tr v-for="group in collapsedImport?.items" :key="collapsedGroupKey(group)" :class="{ selected: selectedCollapsedGroupKeys.includes(collapsedGroupKey(group)) }"><td class="transaction-import-select"><input type="checkbox" :checked="selectedCollapsedGroupKeys.includes(collapsedGroupKey(group))" :aria-label="`Выбрать схлопнутую операцию ${categoryName(group.category_id)}`" @change="toggleCollapsedGroup(group)"></td><td>{{ group.items_count }}</td><td>{{ formatDate(group.date_from) }}<template v-if="group.date_from !== group.date_to"> — {{ formatDate(group.date_to) }}</template></td><td><span class="transaction-import-collapsed-type" :class="group.transaction_type">{{ transactionTypeName(group.transaction_type) }}</span></td><td><strong>{{ categoryName(group.category_id) }}</strong></td><td class="transaction-import-amount">{{ formatCollapsedAmount(group) }}</td><td>{{ bankName(group.bank_label_id) }}</td></tr>
+          </tbody>
         </table>
       </div>
     </div>

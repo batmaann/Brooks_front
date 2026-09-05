@@ -1,6 +1,7 @@
 import { aiApi, api, listResult } from '@/api'
 import type { ApiListResponse } from '@/types/common'
 import type {
+  CollapsedTransactionImport,
   MonthlyBankBreakdown,
   MonthlyCategoryBreakdown,
   MonthlySummary,
@@ -40,10 +41,17 @@ export async function getTransactionImportItems(id: string) {
   return items
 }
 
-export function confirmTransactionImport(id: string, itemIds: string[]) {
+export function collapseTransactionImport(id: string, itemIds: string[]) {
+  return aiApi<CollapsedTransactionImport>(`/transaction-imports/${id}/collapse/`, {
+    method: 'POST',
+    body: JSON.stringify({ item_ids: itemIds }),
+  })
+}
+
+export function confirmTransactionImport(id: string, itemIds: string[], mode: 'detailed' | 'collapsed' = 'detailed') {
   return aiApi<TransactionImport>(`/transaction-imports/${id}/confirm/`, {
     method: 'POST',
-    body: JSON.stringify({ mode: 'detailed', item_ids: itemIds }),
+    body: JSON.stringify({ mode, item_ids: itemIds }),
   })
 }
 

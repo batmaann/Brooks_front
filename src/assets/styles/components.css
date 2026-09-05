@@ -409,6 +409,16 @@ td .icon-button { width: 32px; height: 32px; }
 .transaction-import-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .transaction-import-actions-top { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .transaction-import-cancel-button:hover { color: var(--danger); border-color: #e1bcbc; background: #fff1f2; }
+.transaction-import-collapse-button { min-width: 132px; }
+.transaction-import-collapse-button:hover:not(:disabled) { color: var(--green); border-color: #9cc6b3; background: var(--green-soft); }
+.transaction-import-collapse-button.active { color: #1d4ed8; border-color: #93c5fd; background: #dbeafe; }
+.transaction-import-collapse-button.active:hover:not(:disabled) { color: #fff; border-color: #1d4ed8; background: #1d4ed8; }
+.transaction-import-collapse-button:disabled { opacity: .5; cursor: not-allowed; }
+.transaction-import-collapsed-type { font-weight: 800; }
+.transaction-import-collapsed-type.expense { color: #9b4d4d; }
+.transaction-import-collapsed-type.income { color: #176844; }
+.transaction-import-collapsed-type.saving { color: #8a6517; }
+.transaction-import-uncategorized-row td { background: color-mix(in srgb, var(--surface) 82%, #ffe88a); }
 .transaction-import-accept-wrap { display: inline-flex; }
 .transaction-import-success > svg { color: var(--green); }
 @keyframes transaction-import-spin { to { transform: rotate(360deg); } }
