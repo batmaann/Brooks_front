@@ -185,7 +185,10 @@ function onPaste(event: ClipboardEvent) {
 async function pasteFileFromClipboard() {
   error.value = ''
   try {
-    if (!navigator.clipboard?.read) throw new Error('Вставьте файл сочетанием Ctrl+V или Cmd+V.')
+    if (!navigator.clipboard?.read) {
+      error.value = 'В этом браузере вставка по кнопке недоступна. Попробуйте Ctrl+V (Cmd+V на Mac) или нажмите «Выбрать файл».'
+      return
+    }
     const clipboardItems = await navigator.clipboard.read()
     for (const clipboardItem of clipboardItems) {
       const mimeType = clipboardItem.types.find((type) => Boolean(clipboardMimeExtensions[type]))
@@ -195,9 +198,9 @@ async function pasteFileFromClipboard() {
       selectFile(new File([blob], `файл-из-буфера.${extension}`, { type: mimeType }), true)
       return
     }
-    throw new Error('В буфере обмена нет поддерживаемого файла. Текст, архивы и другие данные импортировать нельзя.')
-  } catch (clipboardError) {
-    error.value = clipboardError instanceof Error ? clipboardError.message : 'Не удалось прочитать буфер обмена.'
+    error.value = `В буфере обмена нет поддерживаемого файла. Допустимые форматы: ${allowedFileFormatsLabel}. Нажмите «Выбрать файл», чтобы загрузить выписку.`
+  } catch {
+    error.value = 'Не удалось получить файл или фото из буфера обмена. Попробуйте скопировать его ещё раз или нажмите «Выбрать файл».'
   }
 }
 
