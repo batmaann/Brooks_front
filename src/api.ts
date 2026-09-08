@@ -69,3 +69,52 @@ export function aiApi<T>(path: string, options: RequestInit = {}) {
 export function listResult<T>(data: T[] | { results: T[] }): T[] {
   return Array.isArray(data) ? data : data.results
 }
+
+// Fetch is used instead of EventSource to retain Token authentication headers.
+export async function aiEvents<T>(path: string, signal: AbortSignal, onStatus: (data: T) => boolean): Promise<void> {
+  let failures = 0
+  while (!signal.aborted) {
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+    try {
+      const token = authClient.getToken()
+      const response = await fetch(`${AI_API_URL}${path}`, {
+        signal,
+        headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Token ${token}` } : {}) },
+      })
+      if (response.status === 401) authClient.onUnauthorized()
+      if (!response.ok) throw new ApiError(`Не удалось подключиться к обновлениям (${response.status}).`)
+      if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+        throw new ApiError('Сервер не вернул поток обновлений.')
+      }
+      reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (!signal.aborted) {
+        const { value, done } = await reader.read()
+        if (done) break
+        failures = 0
+        buffer += decoder.decode(value, { stream: true })
+        let boundary: number
+        while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+          const event = buffer.slice(0, boundary)
+          buffer = buffer.slice(boundary + 2)
+          const data = event.split('\n').filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).trimStart()).join('\n')
+          if (data && onStatus(JSON.parse(data) as T)) return
+        }
+      }
+    } catch (error) {
+      if (signal.aborted) return
+      if (error instanceof ApiError || ++failures >= 3) throw error
+    } finally {
+      await reader?.cancel().catch(() => {})
+    }
+    // Reconnect after the server's bounded stream or a transient disconnect.
+    await new Promise<void>((resolve) => {
+      const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve() }
+      const timer = setTimeout(finish, 1000 * Math.max(1, failures))
+      signal.addEventListener('abort', finish, { once: true })
+      if (signal.aborted) finish()
+    })
+  }
+}

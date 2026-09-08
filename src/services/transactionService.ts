@@ -1,4 +1,4 @@
-import { aiApi, api, listResult } from '@/api'
+import { aiApi, aiEvents, api, listResult } from '@/api'
 import type { ApiListResponse } from '@/types/common'
 import type {
   CollapsedTransactionImport,
@@ -93,4 +93,11 @@ export function updateTransaction(id: number, payload: Partial<TransactionPayloa
 
 export function deleteTransaction(id: number) {
   return api<void>(`/transactions/${id}/`, { method: 'DELETE' })
+}
+
+export function watchTransactionImport(id: string, signal: AbortSignal, onStatus: (item: TransactionImport) => void) {
+  return aiEvents<TransactionImport>(`/transaction-imports/${id}/events/`, signal, (item) => {
+    onStatus(item)
+    return !['queued', 'processing', 'confirming'].includes(item.status)
+  })
 }

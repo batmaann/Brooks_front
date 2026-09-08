@@ -80,6 +80,7 @@ export type TransactionImportStatus = 'uploaded' | 'queued' | 'processing' | 're
 export interface TransactionImport {
   id: string
   status: TransactionImportStatus
+  progress?: number
   original_filename: string
   file_format: string
   detected_bank: string

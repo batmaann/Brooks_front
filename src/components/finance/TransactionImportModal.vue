@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowLeft, Check, ClipboardPaste, Combine, FileClock, Fi
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useFormatters } from '@/composables/useFormatters'
-import { collapseTransactionImport, confirmTransactionImport, getTransactionImport, getTransactionImportItems, getTransactionImports, updateTransactionImportItem, uploadTransactionImport } from '@/services/transactionService'
+import { collapseTransactionImport, confirmTransactionImport, getTransactionImport, getTransactionImportItems, getTransactionImports, updateTransactionImportItem, uploadTransactionImport, watchTransactionImport } from '@/services/transactionService'
 import type { BankLabel, Category, CollapsedTransactionImport, CollapsedTransactionImportGroup, TransactionImport, TransactionImportItem, TransactionType } from '@/types/finance'
 
 const props = defineProps<{
@@ -25,6 +25,23 @@ const showInfo = ref(false)
 const showAiCategoryInfo = ref(false)
 const stage = ref<'select' | 'processing' | 'review' | 'confirming' | 'done'>('select')
 const transactionImport = ref<TransactionImport | null>(null)
+const importProgress = computed(() => {
+  const item = transactionImport.value
+  if (!item) return 0
+  if (['ready', 'confirming', 'confirmed'].includes(item.status)) return 100
+  return Math.max(0, Math.min(100, item.progress ?? 25))
+})
+const progressLabel = computed(() => {
+  const item = transactionImport.value
+  if (item?.status === 'failed') return 'Обработка остановлена с ошибкой'
+  if (item?.status === 'cancelled') return 'Импорт отменён'
+  if (importProgress.value === 100) return 'Черновики готовы к проверке'
+  if (importProgress.value >= 75) return 'Сохранение операций…'
+  if (importProgress.value >= 50) return 'Подбор категорий…'
+  if (item?.status === 'queued') return 'Файл загружен. Ожидание обработки…'
+  if (importProgress.value >= 25) return 'Изучение файла с помощью AI…'
+  return 'Загрузка файла…'
+})
 const items = ref<TransactionImportItem[]>([])
 const error = ref('')
 const selectedRowIds = ref<string[]>([])
@@ -45,7 +62,7 @@ const showDuplicateConfirm = ref(false)
 const collapsedImport = ref<CollapsedTransactionImport | null>(null)
 const collapseLoading = ref(false)
 const selectedCollapsedGroupKeys = ref<string[]>([])
-let pollTimer: ReturnType<typeof setTimeout> | null = null
+let statusController: AbortController | null = null
 
 const allowedFileExtensions = new Set(['csv', 'doc', 'docx', 'jpeg', 'jpg', 'ofd', 'ofx', 'pdf', 'png', 'webp', 'xls', 'xlsx'])
 const allowedFileFormatsLabel = 'CSV, DOC, DOCX, JPEG, JPG, OFD, OFX, PDF, PNG, WEBP, XLS или XLSX'
@@ -77,7 +94,7 @@ const exactDuplicateItems = computed(() => items.value.filter((item) => item.dup
 const possibleDuplicateItems = computed(() => items.value.filter((item) => item.duplicate_status === 'possible'))
 const safeItems = computed(() => items.value.filter((item) => item.duplicate_status === 'none'))
 const visibleItems = computed(() => duplicatesOnly.value ? duplicateItems.value : items.value)
-const collapsedGroupKey = (group: CollapsedTransactionImportGroup) => `${group.transaction_type}:${group.currency}:${group.category_id ?? 'none'}:${group.bank_label_id ?? 'none'}`
+const collapsedGroupKey = (group: CollapsedTransactionImportGroup) => `${group.date_from.slice(0, 7)}:${group.transaction_type}:${group.currency}:${group.category_id ?? 'none'}:${group.bank_label_id ?? 'none'}`
 const selectedCollapsedGroups = computed(() => collapsedImport.value?.items.filter((group) => selectedCollapsedGroupKeys.value.includes(collapsedGroupKey(group))) || [])
 const confirmationItemIds = computed(() => isCollapsed.value
   ? selectedCollapsedGroups.value.flatMap((group) => group.item_ids)
@@ -205,7 +222,7 @@ async function pasteFileFromClipboard() {
 }
 
 function close() {
-  if (pollTimer) clearTimeout(pollTimer)
+  statusController?.abort()
   selectedFile.value = null
   emit('close')
 }
@@ -331,10 +348,16 @@ async function saveItemDescription(item: TransactionImportItem) {
   }
 }
 
-async function pollImport() {
+async function waitForImport() {
   if (!transactionImport.value) return
   try {
-    transactionImport.value = await getTransactionImport(transactionImport.value.id)
+    statusController?.abort()
+    const controller = new AbortController()
+    statusController = controller
+    await watchTransactionImport(transactionImport.value.id, controller.signal, (item) => {
+      transactionImport.value = item
+    })
+    if (controller.signal.aborted) return
     if (transactionImport.value.status === 'ready') {
       items.value = await getTransactionImportItems(transactionImport.value.id)
       stage.value = 'review'
@@ -345,7 +368,6 @@ async function pollImport() {
       stage.value = 'select'
       return
     }
-    pollTimer = setTimeout(pollImport, 2000)
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось получить статус импорта.'
     stage.value = 'select'
@@ -355,10 +377,11 @@ async function pollImport() {
 async function startImport() {
   if (!selectedFile.value) return
   error.value = ''
+  transactionImport.value = null
   stage.value = 'processing'
   try {
     transactionImport.value = await uploadTransactionImport(selectedFile.value)
-    await pollImport()
+    await waitForImport()
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось загрузить файл.'
     stage.value = 'select'
@@ -404,28 +427,33 @@ async function acceptImport(duplicatesConfirmed = false) {
   stage.value = 'confirming'
   try {
     transactionImport.value = await confirmTransactionImport(transactionImport.value.id, confirmationItemIds.value, isCollapsed.value ? 'collapsed' : 'detailed')
-    await pollConfirmation()
+    await waitForConfirmation()
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось импортировать операции.'
     stage.value = 'review'
   }
 }
 
-async function pollConfirmation() {
+async function waitForConfirmation() {
   if (!transactionImport.value) return
   try {
-    transactionImport.value = await getTransactionImport(transactionImport.value.id)
+    statusController?.abort()
+    const controller = new AbortController()
+    statusController = controller
+    await watchTransactionImport(transactionImport.value.id, controller.signal, (item) => {
+      transactionImport.value = item
+    })
+    if (controller.signal.aborted) return
     if (transactionImport.value.status === 'confirmed') {
       stage.value = 'done'
       emit('imported')
       return
     }
-    if (transactionImport.value.status === 'failed') {
+    if (['failed', 'ready', 'cancelled'].includes(transactionImport.value.status)) {
       error.value = transactionImport.value.error || 'Не удалось импортировать операции.'
       stage.value = 'review'
       return
     }
-    pollTimer = setTimeout(pollConfirmation, 2000)
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось получить статус импорта.'
     stage.value = 'review'
@@ -437,7 +465,7 @@ onMounted(() => {
   window.addEventListener('paste', onPaste)
 })
 onBeforeUnmount(() => {
-  if (pollTimer) clearTimeout(pollTimer)
+  statusController?.abort()
   window.removeEventListener('paste', onPaste)
 })
 
@@ -478,6 +506,22 @@ function formatFileSize(bytes: number) {
         <div class="transaction-import-dialog-actions"><button class="secondary-button" type="button" @click="showDuplicateConfirm = false">Вернуться к проверке</button><button class="danger-button" type="button" @click="acceptImport(true)">Всё равно импортировать</button></div>
       </section>
     </div>
+    <section
+      v-if="stage === 'processing' || (stage === 'select' && transactionImport && error)"
+      class="import-progress"
+      aria-label="Прогресс обработки файла"
+    >
+      <div class="import-progress-heading" aria-live="polite">
+        <span>{{ progressLabel }}</span><strong>{{ importProgress }}%</strong>
+      </div>
+      <progress :value="importProgress" max="100" :aria-label="progressLabel">{{ importProgress }}%</progress>
+      <div class="import-progress-steps">
+        <span v-for="(label, index) in ['Загрузка', 'Чтение', 'Категории', 'Сохранение']" :key="label"
+          :class="{ complete: importProgress >= (index + 1) * 25 }">
+          {{ importProgress >= (index + 1) * 25 ? '✓' : index + 1 }} {{ label }}
+        </span>
+      </div>
+    </section>
     <div v-if="stage === 'select'" class="transaction-import-content">
       <div
         class="transaction-import-dropzone"
@@ -571,3 +615,12 @@ function formatFileSize(bytes: number) {
     </div>
   </BaseModal>
 </template>
+
+<style scoped>
+.import-progress { display: grid; gap: 10px; margin: 16px 0; padding: 16px; border: 1px solid #8884; border-radius: 12px; }
+.import-progress-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.import-progress progress { display: block; width: 100%; height: 14px; accent-color: #22a06b; }
+.import-progress-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-size: 12px; }
+.import-progress-steps .complete { font-weight: 700; }
+@media (max-width: 480px) { .import-progress-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
