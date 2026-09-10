@@ -48,6 +48,8 @@ const selectedRowIds = ref<string[]>([])
 const bulkCategory = ref('')
 const bulkBank = ref('')
 const bulkSaving = ref(false)
+// Временно скрыто до возвращения списка готовых импортов.
+const showReadyImports = false
 const readyImports = ref<TransactionImport[]>([])
 const readyImportsLoading = ref(true)
 const openingImportId = ref<string | null>(null)
@@ -461,7 +463,7 @@ async function waitForConfirmation() {
 }
 
 onMounted(() => {
-  loadReadyImports()
+  if (showReadyImports) loadReadyImports()
   window.addEventListener('paste', onPaste)
 })
 onBeforeUnmount(() => {
@@ -489,6 +491,7 @@ function formatFileSize(bytes: number) {
     </template>
     <aside v-if="showInfo" id="transaction-import-info" class="transaction-import-info" role="note">
       <p>Вы можете загрузить файл с операциями для добавления транзакций. Для наиболее точной обработки рекомендуем использовать понятный структурированный формат, в котором для каждой операции указаны <strong>дата</strong>, <strong>тип операции</strong> — трата, доход или накопление, <strong>категория</strong>, <strong>описание</strong>, <strong>сумма</strong> и <strong>банк</strong>.</p>
+      <p>После анализа файла для каждой операции будут сформированы <strong>дата</strong>, <strong>тип операции</strong>, <strong>категория</strong>, <strong>сумма</strong>, <strong>банк</strong> и <strong>описание</strong>. Перед сохранением вы сможете проверить и исправить данные. После подтверждения импорта выбранные операции будут сохранены в Brooks с этими полями.</p>
       <p>Сервис не принимает архивы и не предназначен для обработки файлов большого объёма: такие документы могут быть обработаны неточно или с ошибкой. Искусственный интеллект предложит категории на основе категорий, созданных в вашем аккаунте.</p>
       <p>Мы не сохраняем реквизиты банковских карт и CVV-коды. Пожалуйста, перед загрузкой убедитесь, что файл не содержит избыточных персональных или платёжных данных. Мы принимаем меры для защиты информации и снижения риска её раскрытия.</p>
     </aside>
@@ -559,7 +562,7 @@ function formatFileSize(bytes: number) {
       <p v-if="error" class="transaction-import-error">{{ error }}</p>
       <p class="transaction-import-hint">Поддерживаются выписки и документы: CSV, XLSX, OFX, PDF, изображения и DOCX. Файл также можно вставить сочетанием Ctrl+V или Cmd+V.</p>
       <button class="primary-button" type="button" :disabled="!selectedFile" @click="startImport"><Upload :size="17" />Импортировать файл</button>
-      <section class="transaction-import-drafts">
+      <section v-if="showReadyImports" class="transaction-import-drafts">
         <div class="transaction-import-drafts-heading"><strong>Готовые импорты</strong><span>Можно вернуться к черновику без повторной загрузки файла</span></div>
         <p v-if="readyImportsLoading" class="transaction-import-drafts-empty">Загружаем список…</p>
         <p v-else-if="!readyImports.length" class="transaction-import-drafts-empty">Готовых черновиков пока нет.</p>
