@@ -1,7 +1,7 @@
 import { reportServiceUnavailable } from '@/composables/useServiceAvailability'
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api'
-const AI_API_URL = import.meta.env.VITE_AI_API_BASE_URL || '/ai-api'
+const AI_API_URL = import.meta.env.VITE_AI_API_BASE_URL || '/ai'
 
 export type ApiErrorPayload = Record<string, string | string[]>
 
