@@ -75,6 +75,64 @@ export interface TransactionPayload {
   source?: TransactionSource
 }
 
+export type TransactionImportStatus = 'uploaded' | 'queued' | 'processing' | 'ready' | 'confirming' | 'confirmed' | 'failed' | 'cancelled'
+
+export interface TransactionImport {
+  id: string
+  status: TransactionImportStatus
+  progress?: number
+  original_filename: string
+  file_format: string
+  detected_bank: string
+  total_rows: number
+  created_rows: number
+  duplicate_rows: number
+  skipped_rows: number
+  error: string
+  confirmation_mode: 'detailed' | 'collapsed' | ''
+  created_at: string
+  completed_at: string | null
+}
+
+export interface TransactionImportItem {
+  id: string
+  transaction_import: string
+  row_number: number
+  date: string
+  transaction_type: TransactionType
+  amount: string
+  currency: string
+  description: string
+  bank_category: string
+  category_id: number | null
+  bank_label_id: number | null
+  category_reason: string
+  duplicate_status: 'none' | 'exact' | 'possible'
+  duplicate_transaction_id: number | null
+  selected: boolean
+}
+
+export interface CollapsedTransactionImportGroup {
+  transaction_type: TransactionType
+  currency: string
+  category_id: number | null
+  bank_label_id: number | null
+  amount: string
+  items_count: number
+  date_from: string
+  date_to: string
+  item_ids: string[]
+}
+
+export interface CollapsedTransactionImport {
+  source_items_count: number
+  collapsed_items_count: number
+  grouped_items_count: number
+  individual_items_count: number
+  items: CollapsedTransactionImportGroup[]
+  individual_items: TransactionImportItem[]
+}
+
 export type MonthlySummaryDirection = 'up' | 'down' | 'same' | 'new'
 
 export interface MonthlySummaryMetric {

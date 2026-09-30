@@ -7,6 +7,7 @@ defineProps<{
   showFooter?: boolean
   title: string
   wide?: boolean
+  extraWide?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -16,13 +17,16 @@ const emit = defineEmits<{
 
 <template>
   <div class="modal-backdrop" @mousedown.self="emit('close')">
-    <section class="modal" :class="{ wide }">
+    <section class="modal" :class="{ wide, 'extra-wide': extraWide }">
       <header>
         <div>
           <p class="eyebrow">{{ eyebrow }}</p>
           <h2>{{ title }}</h2>
         </div>
-        <button class="icon-button" :class="{ danger: closeDanger }" title="Закрыть" @click="emit('close')"><X :size="20" /></button>
+        <div class="modal-header-actions">
+          <slot name="header-actions" />
+          <button class="icon-button" :class="{ danger: closeDanger }" title="Закрыть" @click="emit('close')"><X :size="20" /></button>
+        </div>
       </header>
 
       <slot />
