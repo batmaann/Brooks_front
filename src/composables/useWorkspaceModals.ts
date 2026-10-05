@@ -54,6 +54,7 @@ export function useWorkspaceModals(options: UseWorkspaceModalsOptions) {
   }
 
   function closeModal() {
+    options.error.value = ''
     options.resetDictionaryEditors()
     options.resetRefuelingEditor()
     modal.value = null

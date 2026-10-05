@@ -300,6 +300,7 @@ td .icon-button { width: 32px; height: 32px; }
 .segmented-control svg { flex: 0 0 auto; }
 .modal footer { justify-content: flex-end; border-top: 1px solid var(--line); background: #fafbfa; }
 .modal-error { padding: 0 22px 16px; }
+.modal-error-top { padding: 16px 22px 0; overflow-wrap: anywhere; }
 .transaction-import-content { padding: 22px; display: grid; gap: 14px; }
 .transaction-import-info-button:hover, .transaction-import-info-button[aria-expanded="true"] { color: #8a6500; border-color: #e8cb73; background: #fff7d6; }
 .transaction-import-info { margin: 18px 22px 0; padding: 14px 16px; display: grid; gap: 9px; color: var(--muted); border: 1px solid #c9ddd1; border-radius: 7px; background: #f4faf6; font-size: 12px; line-height: 1.55; }
@@ -586,4 +587,26 @@ td .icon-button { width: 32px; height: 32px; }
 
 @media (max-width: 560px) {
   .about-telegram-links { grid-template-columns: 1fr; }
+}
+
+.bank-label-pane input[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+  animation: dictionary-name-shake 420ms ease-in-out, dictionary-name-blush 650ms ease-out;
+}
+.bank-label-pane input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent); }
+
+@keyframes dictionary-name-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes dictionary-name-blush {
+  25% { background-color: color-mix(in srgb, var(--danger) 16%, var(--surface, white)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bank-label-pane input[aria-invalid="true"] { animation: none; transition: none; }
 }

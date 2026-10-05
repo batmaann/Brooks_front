@@ -138,7 +138,7 @@ provide(workspaceUiKey, {
 })
 
 const { loadData: refreshWorkspace, loading, logout } = workspaceData
-const { openModal } = workspaceModals
+const { modal, openModal } = workspaceModals
 
 const viewTitle = computed(() => navItems.find((item) => item.id === activeView.value)?.label || '')
 const statisticsMonthLabel = computed(() => new Intl.DateTimeFormat('ru-RU', {
@@ -186,7 +186,7 @@ onMounted(() => {
   <AppLayout
     :active-view="activeView"
     :dark-theme="isDarkTheme"
-    :error="error"
+    :error="modal ? '' : error"
     :loading="loading"
     :mobile-nav-open="mobileNavOpen"
     :statistics-mode="statisticsOpen"
