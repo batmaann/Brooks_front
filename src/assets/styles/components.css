@@ -437,8 +437,11 @@ td .icon-button { width: 32px; height: 32px; }
 .delete-content { padding: 22px; display: grid; gap: 8px; color: var(--ink); }
 .delete-content p { margin: 0; font-weight: 800; }
 .delete-content span { color: var(--muted); font-size: 13px; }
-.check-field input { position: absolute; opacity: 0; pointer-events: none; }
+.check-field { position: relative; justify-self: start; width: fit-content; max-width: 100%; cursor: pointer; }
+.check-field input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .check-field span { width: fit-content; min-height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid #cad4cf; border-radius: 6px; color: #5a6560; }
+.check-field span svg { flex-shrink: 0; }
+.check-field input:focus-visible + span { outline: 2px solid var(--green); outline-offset: 2px; }
 .check-field input:checked + span { color: var(--green); background: var(--green-soft); border-color: #9cc6b3; }
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
