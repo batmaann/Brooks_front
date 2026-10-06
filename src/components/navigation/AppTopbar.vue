@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ChevronLeft, ChevronRight, Lightbulb, Menu, RefreshCw } from '@lucide/vue'
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Lightbulb, Menu, RefreshCw } from '@lucide/vue'
 
 defineProps<{
   loading: boolean
@@ -15,6 +15,7 @@ const emit = defineEmits<{
   nextStatisticsMonth: []
   previousStatisticsMonth: []
   refresh: []
+  showHelp: []
   toggleTheme: []
 }>()
 </script>
@@ -33,14 +34,18 @@ const emit = defineEmits<{
         <strong>{{ statisticsMonthLabel }}</strong>
         <button type="button" aria-label="Следующий месяц" @click="emit('nextStatisticsMonth')"><ChevronRight :size="18" /></button>
       </div>
-      <button class="icon-button" title="Обновить данные" :disabled="loading" @click="emit('refresh')">
+      <button class="icon-button" title="Обновить данные" data-help="Обновить данные с сервера" :disabled="loading" @click="emit('refresh')">
         <RefreshCw :class="{ spin: loading }" :size="19" />
+      </button>
+      <button class="icon-button" type="button" title="Показать подсказки" aria-label="Показать подсказки" data-help="Подсказки по интерфейсу" @click="emit('showHelp')">
+        <Info :size="20" />
       </button>
       <button
         class="icon-button theme-toggle"
         :class="{ active: darkTheme }"
         :title="darkTheme ? 'Выключить темную тему' : 'Включить темную тему'"
         type="button"
+        :data-help="darkTheme ? 'Переключиться на светлую тему' : 'Переключиться на тёмную тему'"
         @click="emit('toggleTheme')"
       >
         <Lightbulb :size="20" />
