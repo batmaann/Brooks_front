@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, provide, ref } from 'vue'
 import { X } from '@lucide/vue'
 import AppSidebar from '@/components/navigation/AppSidebar.vue'
 import AppTopbar from '@/components/navigation/AppTopbar.vue'
 import InterfaceHelp from '@/components/navigation/InterfaceHelp.vue'
+import { interfaceHelpKey, type HelpTarget } from '@/components/navigation/interfaceHelp'
 import type { AppView } from '@/types/navigation'
 
 defineProps<{
@@ -33,13 +34,14 @@ const emit = defineEmits<{
 
 const shell = ref<HTMLElement>()
 const helpOpen = ref(false)
-const helpTargets = ref<{ text: string; side: boolean; left: number; top: number; width: number; height: number }[]>([])
+provide(interfaceHelpKey, helpOpen)
+const helpTargets = ref<HelpTarget[]>([])
 let previousFocus: HTMLElement | null = null
 
 function measureHelp() {
   helpTargets.value = Array.from(shell.value?.querySelectorAll<HTMLElement>('[data-help]') ?? []).map((element) => {
     const rect = element.getBoundingClientRect()
-    return { text: element.dataset.help ?? '', side: !!element.closest('.sidebar'), left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+    return { text: element.dataset.help ?? '', placement: element.dataset.helpPlacement, side: !!element.closest('.sidebar'), content: !!element.closest('.content'), left: rect.left, top: rect.top, width: rect.width, height: rect.height }
   })
 }
 

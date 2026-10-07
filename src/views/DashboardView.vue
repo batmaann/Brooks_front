@@ -81,7 +81,7 @@ const transactionSearchModel = computed({
     <div class="section-heading">
       <div class="finance-heading-main"><h2>Финансовые операции</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="transactionSearchModel" placeholder="Поиск по операциям, банку и описанию"></div></div>
       <div class="finance-heading-actions">
-        <button class="primary-button dashboard-add-button" title="Добавить операцию" @click="startCreateTransaction()"><Plus :size="18" /></button>
+        <button class="primary-button dashboard-add-button" title="Добавить операцию" data-help-placement="left" data-help="Кнопка «+» — добавляет новую операцию: доход, трату или накопление. Нажмите её, заполните поля и сохраните операцию галочкой." @click="startCreateTransaction()"><Plus :size="18" /></button>
         <button v-if="dashboardVisibility.attachFile" class="icon-button" title="Прикрепить файл" type="button" @click="importModalOpen = true"><Paperclip :size="18" /></button>
         <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" @click="openModal('bankLabel')">Добавить банк</button>
         <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" @click="openModal('category')">Добавить категории</button>
