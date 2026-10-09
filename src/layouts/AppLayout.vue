@@ -41,7 +41,7 @@ let previousFocus: HTMLElement | null = null
 function measureHelp() {
   helpTargets.value = Array.from(shell.value?.querySelectorAll<HTMLElement>('[data-help]') ?? []).map((element) => {
     const rect = element.getBoundingClientRect()
-    return { text: element.dataset.help ?? '', placement: element.dataset.helpPlacement, side: !!element.closest('.sidebar'), content: !!element.closest('.content'), left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+    return { id: element.dataset.helpId, related: element.dataset.helpRelated, text: element.dataset.help ?? '', placement: element.dataset.helpPlacement, side: !!element.closest('.sidebar'), content: !!element.closest('.content'), left: rect.left, top: rect.top, width: rect.width, height: rect.height }
   })
 }
 

@@ -28,7 +28,7 @@ function selectItem(item: NavItem) {
       <strong>Brooks</strong>
       <button class="icon-button mobile-close" title="Закрыть меню" @click="emit('close')"><X :size="20" /></button>
     </div>
-    <nav data-help="Разделы приложения — выберите нужный раздел в этом меню">
+    <nav data-help-id="app-sections" data-help="Разделы приложения — выберите нужный раздел в этом меню">
       <button
         v-for="item in navItems"
         :key="item.id"

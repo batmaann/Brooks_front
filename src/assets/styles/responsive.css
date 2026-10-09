@@ -49,9 +49,14 @@
   .modal form label { grid-column: 1; }
   .odometer-field { grid-template-columns: 1fr; }
   .segmented-control { width: 100%; }
-  .topbar-statistics-back { padding-right: 8px; font-size: 0; }
-  .topbar-month-picker { width: min(210px, 42vw); }
-  .topbar-month-picker strong { font-size: 11px; }
+  .topbar-statistics { display: grid; grid-template-columns: 38px 24px minmax(0, 1fr) auto; gap: 10px 8px; }
+  .topbar-statistics .menu-button { grid-column: 1; grid-row: 1; }
+  .topbar-statistics-back { grid-column: 2; grid-row: 1; justify-content: center; padding: 0; border: 0; font-size: 0; }
+  .topbar-statistics .topbar-heading { grid-column: 3; grid-row: 1; min-width: 0; }
+  .topbar-statistics h1 { margin-top: 0; font-size: 18px; }
+  .topbar-statistics .topbar-actions { grid-column: 4; grid-row: 1; gap: 4px; }
+  .topbar-statistics .topbar-month-picker { grid-column: 1 / -1; grid-row: 2; width: 100%; min-width: 0; margin-left: 0; grid-template-columns: 36px minmax(0, 1fr) 36px; }
+  .topbar-month-picker strong { font-size: 13px; }
   .statistics-card { min-height: 0; padding: 19px; }
   .expense-chart-card { padding: 20px; gap: 24px; }
   .expense-chart-content { grid-template-columns: 240px minmax(0, 1fr); gap: 18px; }

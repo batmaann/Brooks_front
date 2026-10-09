@@ -41,14 +41,14 @@ function numberOrNull(value: string) {
       <td v-else-if="columnKey === 'transaction_type'"><select :value="form.transaction_type" @change="updateForm('transaction_type', ($event.target as HTMLSelectElement).value as TransactionType)"><option value="income">Доход</option><option value="expense">Трата</option><option value="saving">Накопление</option></select></td>
       <td v-else-if="columnKey === 'section'"><select :value="form.section ?? ''" @change="updateForm('section', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбран</option><option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option></select></td>
       <td v-else-if="columnKey === 'category'"><select :value="form.category ?? ''" @change="updateForm('category', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не выбрана</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></td>
-      <td v-else-if="columnKey === 'amount'"><DecimalInput :model-value="form.amount" required :min="0.01" @update:model-value="updateForm('amount', $event)" /></td>
+      <td v-else-if="columnKey === 'amount'"><DecimalInput :model-value="form.amount" select-on-focus group-thousands enter-next required :min="0.01" @update:model-value="updateForm('amount', $event)" /></td>
       <td v-else-if="columnKey === 'bank_label'"><select :value="form.bank_label ?? ''" @change="updateForm('bank_label', numberOrNull(($event.target as HTMLSelectElement).value))"><option value="">Не указан</option><option v-for="bankLabel in bankLabels" :key="bankLabel.id" :value="bankLabel.id">{{ bankLabel.name }}</option></select></td>
       <td v-else><input :value="form.description" placeholder="Описание" @input="updateForm('description', ($event.target as HTMLInputElement).value.trim())"></td>
     </template>
     <td>
       <div class="transaction-actions editing">
         <button class="icon-button" title="Сохранить" :disabled="saving" @click="emit('update', itemId)"><Check :size="16" /></button>
-        <button class="icon-button" title="Отмена" :disabled="saving" @click="emit('cancel')"><X :size="16" /></button>
+        <button class="icon-button transaction-cancel-button" title="Отмена" :disabled="saving" @click="emit('cancel')"><X :size="16" /></button>
       </div>
     </td>
   </tr>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Eye, Paperclip, Plus, Search, WalletCards } from '@lucide/vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import FinanceSummary from '@/components/finance/FinanceSummary.vue'
 import TransactionImportModal from '@/components/finance/TransactionImportModal.vue'
 import TransactionBulkActions from '@/components/finance/TransactionBulkActions.vue'
@@ -68,6 +68,19 @@ const transactionSearchOpen = ref(Boolean(transactionSearch.value))
 const transactionSearchInput = ref<HTMLInputElement>()
 const transactionSearchControl = ref<HTMLElement>()
 const transactionSearchWidth = ref(390)
+const dashboardControlsMenu = ref<HTMLElement>()
+
+function closeDashboardControlsOnOutsideClick(event: MouseEvent) {
+  if (dashboardControlsOpen.value && event.target instanceof Node && !dashboardControlsMenu.value?.contains(event.target)) {
+    dashboardControlsOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', closeDashboardControlsOnOutsideClick, true))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDashboardControlsOnOutsideClick, true)
+  dashboardControlsOpen.value = false
+})
 
 watch(() => dashboardVisibility.search, (visible) => {
   if (visible) return
@@ -108,7 +121,7 @@ const transactionSearchModel = computed({
       </div>
       <div class="finance-heading-actions">
         <button class="primary-button dashboard-add-button" :style="transactionSearchOpen ? { transform: `translateX(-${transactionSearchWidth - 40}px)` } : undefined" title="Добавить операцию" data-help-placement="left" data-help="Кнопка «+» — добавляет новую операцию: доход, трату или накопление. Нажмите её, заполните поля и сохраните операцию галочкой." @click="startCreateTransaction()"><Plus :size="18" /></button>
-        <div v-if="dashboardVisibility.search" ref="transactionSearchControl" class="transaction-search-control">
+        <div v-if="dashboardVisibility.search" ref="transactionSearchControl" class="transaction-search-control" :class="{ 'search-open': transactionSearchOpen }">
           <div v-if="transactionSearchOpen" class="search-field transaction-search" data-help="Поиск по операциям — введите текст, чтобы найти операции по банку или описанию. Очистите поле, чтобы снова увидеть весь список." :style="{ width: `${transactionSearchWidth}px` }">
             <Search :size="18" />
             <input ref="transactionSearchInput" v-model="transactionSearchModel" aria-label="Поиск по операциям, банку и описанию" placeholder="Поиск по операциям, банку и описанию" @blur="collapseUnusedSearch">
@@ -120,7 +133,7 @@ const transactionSearchModel = computed({
         <button v-if="dashboardVisibility.attachFile" class="icon-button" title="Прикрепить файл" type="button" data-help="Прикрепить файл — откройте окно импорта, чтобы загрузить выписку или документ с финансовыми операциями. Файл можно выбрать на устройстве, перетащить или вставить из буфера обмена." @click="importModalOpen = true"><Paperclip :size="18" /></button>
         <button v-if="dashboardVisibility.addBank" class="secondary-button" type="button" data-help="Добавить банк — создайте банк, чтобы выбирать его при добавлении операций. В этом окне также можно изменить название и описание существующего банка." @click="openModal('bankLabel')">Добавить банк</button>
         <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" data-help="Добавить категории — создайте категорию, например «Продукты» или «Зарплата», чтобы указывать назначение операций. В этом окне также можно редактировать существующие категории." @click="openModal('category')">Добавить категории</button>
-        <div class="visibility-menu">
+        <div ref="dashboardControlsMenu" class="visibility-menu">
           <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" data-help="Настроить главную — выберите, какие виджеты, кнопки и столбцы таблицы показывать на главной странице. Ваш выбор сохраняется в этом браузере." @click="dashboardControlsOpen = !dashboardControlsOpen"><Eye :size="18" /></button>
           <TransactionColumnSettings
             v-if="dashboardControlsOpen"
@@ -203,4 +216,10 @@ const transactionSearchModel = computed({
 .transaction-search-control .transaction-search { position: absolute; z-index: 20; top: 0; right: 0; max-width: calc(100vw - 32px); box-shadow: 0 4px 14px rgb(0 0 0 / 12%); }
 .transaction-search-control .transaction-search input { min-width: 0; }
 .transaction-search-control .transaction-search > svg { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .finance-heading-actions .dashboard-add-button { transform: none !important; }
+  .transaction-search-control.search-open { order: 1; flex: 1 1 100%; width: 100%; min-width: 0; }
+  .transaction-search-control .transaction-search { position: static; width: 100% !important; max-width: none; box-shadow: none; }
+  .transaction-search-control .transaction-search input { width: 100%; font-size: 16px; }
+}
 </style>

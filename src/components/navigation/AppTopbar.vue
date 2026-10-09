@@ -21,19 +21,19 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <header class="topbar">
+  <header class="topbar" :class="{ 'topbar-statistics': statisticsMode }">
     <button class="icon-button menu-button" title="Открыть меню" @click="emit('openMenu')"><Menu :size="21" /></button>
-    <button v-if="statisticsMode" class="topbar-statistics-back" type="button" @click="emit('closeStatistics')"><ArrowLeft :size="19" />Назад</button>
-    <div>
+    <button v-if="statisticsMode" class="topbar-statistics-back" type="button" aria-label="Назад на главную" title="Назад на главную" @click="emit('closeStatistics')"><ArrowLeft :size="19" />Назад</button>
+    <div class="topbar-heading">
       <p v-if="!statisticsMode" class="eyebrow">Панель управления</p>
       <h1>{{ statisticsMode ? 'Статистика' : title }}</h1>
     </div>
-    <div class="topbar-actions">
-      <div v-if="statisticsMode" class="topbar-month-picker">
+    <div v-if="statisticsMode" class="topbar-month-picker">
         <button type="button" aria-label="Предыдущий месяц" @click="emit('previousStatisticsMonth')"><ChevronLeft :size="18" /></button>
         <strong>{{ statisticsMonthLabel }}</strong>
         <button type="button" aria-label="Следующий месяц" @click="emit('nextStatisticsMonth')"><ChevronRight :size="18" /></button>
-      </div>
+    </div>
+    <div class="topbar-actions">
       <button class="icon-button" type="button" title="Показать подсказки" aria-label="Показать подсказки" @click="emit('showHelp')">
         <Info :size="20" />
       </button>

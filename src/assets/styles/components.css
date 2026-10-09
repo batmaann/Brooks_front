@@ -201,6 +201,7 @@
 .transaction-edit-row td { vertical-align: middle; }
 .transaction-edit-row td:nth-child(6) input { min-width: 220px; }
 .transaction-actions .icon-button { width: 32px; height: 32px; }
+.transaction-actions .transaction-cancel-button:hover:not(:disabled) { color: var(--danger); border-color: #e1bcbc; background: #fff1f2; }
 .muted-cell { color: var(--muted); font-size: 12px; }
 
 .list-toolbar { margin-bottom: 18px; display: flex; align-items: center; gap: 16px; }
@@ -487,6 +488,7 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .icon-button:hover { color: var(--green); background: #1b2a25; border-color: #4b695e; }
 [data-theme="dark"] .icon-button.danger { color: #ffaaa5; }
 [data-theme="dark"] .icon-button.danger:hover { color: #ff7777; background: #2f1d1d; border-color: #704040; }
+[data-theme="dark"] .transaction-actions .transaction-cancel-button:hover:not(:disabled) { color: #ff7777; background: #2f1d1d; border-color: #704040; }
 [data-theme="dark"] .theme-toggle { color: #ffe88a; background: #263026; border-color: #756d38; box-shadow: 0 10px 28px rgba(0, 0, 0, .36); }
 [data-theme="dark"] .danger-button:hover { background: #c04444; }
 [data-theme="dark"] .theme-toggle:hover,
@@ -580,6 +582,7 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .transaction-type.expense { color: #ffa1a1; background: #3b2020; }
 [data-theme="dark"] .transaction-type.saving { color: #f2c75b; background: #382d17; }
 [data-theme="dark"] .transaction-edit-row { background: #141f1b; }
+[data-theme="dark"] .transaction-edit-row input[type="date"] { color-scheme: dark; }
 [data-theme="dark"] .error-banner { color: #ffb7b7; background: #351d1d; border-color: #6a3333; }
 [data-theme="dark"] .modal-backdrop { background: rgba(4, 8, 7, .72); }
 [data-theme="dark"] .about-telegram-link { color: #78e0a8; background: #183527; border-color: #315b47; }

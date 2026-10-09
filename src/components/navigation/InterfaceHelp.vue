@@ -64,7 +64,7 @@ onMounted(() => overlay.value?.focus())
         v-for="(target, index) in targets"
         :key="index"
         class="help-highlight"
-        :class="{ 'help-active': activeTarget === index }"
+        :class="{ 'help-active': activeTarget === index || (!!target.id && activeHelp?.related === target.id) }"
         :style="{ left: `${target.left}px`, top: `${target.top}px`, width: `${target.width}px`, height: `${target.height}px` }"
         tabindex="0"
         :aria-label="target.text.split(' — ')[0]"
