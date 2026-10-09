@@ -43,7 +43,7 @@ function selectItem(item: NavItem) {
     </nav>
     <div class="sidebar-footer">
       <button @click="emit('logout')"><LogOut :size="19" /><span>Выйти</span></button>
-      <button class="about-link" type="button" @click="emit('about')">О нас</button>
+      <button class="about-link" type="button" data-help="О нас — узнайте больше о Brooks. Здесь также есть ссылки на канал с новостями и бот обратной связи для вопросов и предложений." @click="emit('about')">О нас</button>
     </div>
   </aside>
 </template>

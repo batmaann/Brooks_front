@@ -20,22 +20,22 @@ function comparisonText(metric: MonthlySummaryMetric) {
 
 <template>
   <div class="finance-summary">
-    <button class="finance-summary-item income finance-summary-link" type="button" @click="emit('openStatistics', 'income')">
+    <button class="finance-summary-item income finance-summary-link" type="button" data-help="Доходы — нажмите на панель, чтобы открыть статистику доходов и посмотреть поступления по категориям и банкам." @click="emit('openStatistics', 'income')">
       <span>Доходы</span>
       <strong>{{ currency(summary?.income.current, summary?.currency) }}</strong>
       <small v-if="summary" :class="summary.income.direction"><i class="trend-icon"><TrendingUp v-if="summary.income.direction === 'up'" :size="14" /><TrendingDown v-else-if="summary.income.direction === 'down'" :size="14" /><Minus v-else-if="summary.income.direction === 'same'" :size="14" /><Sparkles v-else :size="13" /></i>Было {{ currency(summary.income.previous, summary.currency) }} · {{ comparisonText(summary.income) }}</small>
     </button>
-    <button class="finance-summary-item expense finance-summary-link" type="button" @click="emit('openStatistics', 'expense')">
+    <button class="finance-summary-item expense finance-summary-link" type="button" data-help="Траты — нажмите на панель, чтобы открыть статистику расходов и посмотреть, на что потрачены деньги, по категориям и банкам." @click="emit('openStatistics', 'expense')">
       <span>Траты</span>
       <strong>{{ currency(summary?.expense.current, summary?.currency) }}</strong>
       <small v-if="summary" :class="summary.expense.direction"><i class="trend-icon"><TrendingUp v-if="summary.expense.direction === 'up'" :size="14" /><TrendingDown v-else-if="summary.expense.direction === 'down'" :size="14" /><Minus v-else-if="summary.expense.direction === 'same'" :size="14" /><Sparkles v-else :size="13" /></i>Было {{ currency(summary.expense.previous, summary.currency) }} · {{ comparisonText(summary.expense) }}</small>
     </button>
-    <button class="finance-summary-item saving finance-summary-link" type="button" @click="emit('openStatistics', 'saving')">
+    <button class="finance-summary-item saving finance-summary-link" type="button" data-help="Накопления — нажмите на панель, чтобы открыть статистику отложенных средств по категориям и банкам." @click="emit('openStatistics', 'saving')">
       <span>Накопления</span>
       <strong>{{ currency(summary?.saving.current, summary?.currency) }}</strong>
       <small v-if="summary" :class="summary.saving.direction"><i class="trend-icon"><TrendingUp v-if="summary.saving.direction === 'up'" :size="14" /><TrendingDown v-else-if="summary.saving.direction === 'down'" :size="14" /><Minus v-else-if="summary.saving.direction === 'same'" :size="14" /><Sparkles v-else :size="13" /></i>Было {{ currency(summary.saving.previous, summary.currency) }} · {{ comparisonText(summary.saving) }}</small>
     </button>
-    <button class="finance-summary-item balance finance-summary-link" type="button" @click="emit('openStatistics', 'total')">
+    <button class="finance-summary-item balance finance-summary-link" type="button" data-help="Итог — нажмите на панель, чтобы перейти в раздел статистики. Сначала откроются траты; там можно переключиться на доходы или накопления." @click="emit('openStatistics', 'total')">
       <span>Итог</span>
       <strong>{{ currency(summary?.total.current, summary?.currency) }}</strong>
       <small v-if="summary" :class="summary.total.direction"><i class="trend-icon"><TrendingUp v-if="summary.total.direction === 'up'" :size="14" /><TrendingDown v-else-if="summary.total.direction === 'down'" :size="14" /><Minus v-else-if="summary.total.direction === 'same'" :size="14" /><Sparkles v-else :size="13" /></i>Было {{ currency(summary.total.previous, summary.currency) }} · {{ comparisonText(summary.total) }}</small>

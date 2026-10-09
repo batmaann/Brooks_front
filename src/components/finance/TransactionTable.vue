@@ -38,7 +38,7 @@ const helpOpen = inject(interfaceHelpKey, ref(false))
 const columnHelp: Record<TransactionSortKey, string> = {
   date: 'Дата — укажите день операции, например день покупки или поступления зарплаты. По этой дате операция попадёт в статистику нужного месяца.',
   transaction_type: 'Тип операции — выберите «Доход» для поступления денег, «Трата» для расходов или «Накопление» для отложенных средств.',
-  section: 'Раздел — выберите общее направление операции из своего списка разделов. Категория поможет подробнее указать её назначение.',
+  section: 'Раздел — выберите, к какому разделу в меню слева относится операция. От этого выбора зависит, в каком разделе она будет учитываться и на какие данные повлияет.',
   category: 'Категория — уточните, на что потрачены или откуда получены деньги: например «Продукты» или «Зарплата». Свои категории можно создать кнопкой «Добавить категории».',
   amount: 'Сумма — введите положительную сумму в рублях, например 1500,50. Доход это или расход, определяется типом операции.',
   bank_label: 'Банк — выберите банк, через который прошла операция. Если нужного банка нет в списке, создайте его кнопкой «Добавить банк».',
@@ -70,7 +70,7 @@ const emit = defineEmits<{
       <table>
         <thead>
           <tr>
-            <th class="selection-column"><input type="checkbox" :checked="allVisibleSelected" :disabled="!visibleColumnIds.length" title="Выбрать все видимые" @change="emit('toggleAll', ($event.target as HTMLInputElement).checked)"></th>
+            <th class="selection-column" data-help="Выбрать все видимые — отметьте все операции в текущем списке или снимите выделение. Чтобы выбрать только нужные операции, поставьте галочки напротив отдельных строк ниже. Для выбранных операций можно изменить раздел или категорию либо удалить их вместе."><input type="checkbox" :checked="allVisibleSelected" :disabled="!visibleColumnIds.length" title="Выбрать все видимые" @change="emit('toggleAll', ($event.target as HTMLInputElement).checked)"></th>
             <th
               v-for="columnKey in helpColumns"
               :key="columnKey"
