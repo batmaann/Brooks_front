@@ -34,7 +34,7 @@ const emit = defineEmits<{
         <button type="button" aria-label="Следующий месяц" @click="emit('nextStatisticsMonth')"><ChevronRight :size="18" /></button>
     </div>
     <div class="topbar-actions">
-      <button class="icon-button" type="button" title="Показать подсказки" aria-label="Показать подсказки" @click="emit('showHelp')">
+      <button class="icon-button interface-help-button" type="button" title="Показать подсказки" aria-label="Показать подсказки" @click="emit('showHelp')">
         <Info :size="20" />
       </button>
       <button
@@ -50,3 +50,9 @@ const emit = defineEmits<{
     </div>
   </header>
 </template>
+
+<style scoped>
+@media (max-width: 760px) {
+  .interface-help-button { display: none; }
+}
+</style>
