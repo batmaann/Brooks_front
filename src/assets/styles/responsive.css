@@ -26,6 +26,7 @@
   .menu-button { display: grid; }
   .topbar .eyebrow { display: none; }
   .topbar h1 { font-size: 20px; }
+  [data-theme="dark"] input[type="date"] { color-scheme: dark; }
   .topbar-actions .primary-button { width: 40px; padding: 0; font-size: 0; }
   .content { padding: 20px 16px 40px; }
   .section-heading { flex-wrap: wrap; }
