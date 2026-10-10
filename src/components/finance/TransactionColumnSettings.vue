@@ -2,6 +2,7 @@
 import type { TransactionSortKey } from '@/types/table'
 
 interface DashboardVisibility {
+  search: boolean
   attachFile: boolean
   addBank: boolean
   addCategory: boolean
@@ -35,6 +36,10 @@ function updateDashboardVisibility(field: keyof DashboardVisibility, checked: bo
       <span>Виджеты</span>
     </label>
     <label>
+      <input :checked="dashboardVisibility.search" type="checkbox" @change="updateDashboardVisibility('search', ($event.target as HTMLInputElement).checked)">
+      <span>Поиск по операциям</span>
+    </label>
+    <label>
       <input :checked="dashboardVisibility.addBank" type="checkbox" @change="updateDashboardVisibility('addBank', ($event.target as HTMLInputElement).checked)">
       <span>Добавить банк</span>
     </label>
@@ -42,13 +47,13 @@ function updateDashboardVisibility(field: keyof DashboardVisibility, checked: bo
       <input :checked="dashboardVisibility.addCategory" type="checkbox" @change="updateDashboardVisibility('addCategory', ($event.target as HTMLInputElement).checked)">
       <span>Добавить категории</span>
     </label>
-    <label class="disabled" title="В разработке">
-      <input disabled type="checkbox">
-      <span>AI</span>
-    </label>
     <label>
       <input :checked="dashboardVisibility.attachFile" type="checkbox" @change="updateDashboardVisibility('attachFile', ($event.target as HTMLInputElement).checked)">
       <span>Прикрепить файл</span>
+    </label>
+    <label class="disabled" title="В разработке">
+      <input disabled type="checkbox">
+      <span>AI</span>
     </label>
     <div class="visibility-divider"></div>
     <strong class="visibility-title">Столбцы</strong>

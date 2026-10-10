@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { nextTick, onBeforeUnmount, provide, ref } from 'vue'
 import { X } from '@lucide/vue'
 import AppSidebar from '@/components/navigation/AppSidebar.vue'
 import AppTopbar from '@/components/navigation/AppTopbar.vue'
+import InterfaceHelp from '@/components/navigation/InterfaceHelp.vue'
+import { interfaceHelpKey, type HelpTarget } from '@/components/navigation/interfaceHelp'
 import type { AppView } from '@/types/navigation'
 
 defineProps<{
@@ -28,13 +31,43 @@ const emit = defineEmits<{
   selectView: [view: AppView]
   toggleTheme: []
 }>()
+
+const shell = ref<HTMLElement>()
+const helpOpen = ref(false)
+provide(interfaceHelpKey, helpOpen)
+const helpTargets = ref<HelpTarget[]>([])
+let previousFocus: HTMLElement | null = null
+
+function measureHelp() {
+  helpTargets.value = Array.from(shell.value?.querySelectorAll<HTMLElement>('[data-help]') ?? []).map((element) => {
+    const rect = element.getBoundingClientRect()
+    return { id: element.dataset.helpId, related: element.dataset.helpRelated, text: element.dataset.help ?? '', placement: element.dataset.helpPlacement, side: !!element.closest('.sidebar'), content: !!element.closest('.content'), left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+  })
+}
+
+async function showHelp() {
+  previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  helpOpen.value = true
+  await nextTick()
+  measureHelp()
+  window.addEventListener('resize', measureHelp)
+}
+
+async function closeHelp() {
+  helpOpen.value = false
+  window.removeEventListener('resize', measureHelp)
+  await nextTick()
+  previousFocus?.focus()
+}
+
+onBeforeUnmount(() => window.removeEventListener('resize', measureHelp))
 </script>
 
 <template>
-  <div class="app-shell">
+  <div ref="shell" class="app-shell" :class="{ 'help-open': helpOpen }" :inert="helpOpen">
     <AppSidebar
       :active-view="activeView"
-      :open="mobileNavOpen"
+      :open="mobileNavOpen || helpOpen"
       @about="emit('about')"
       @close="emit('closeMenu')"
       @logout="emit('logout')"
@@ -52,6 +85,7 @@ const emit = defineEmits<{
         @next-statistics-month="emit('nextStatisticsMonth')"
         @open-menu="emit('openMenu')"
         @refresh="emit('refresh')"
+        @show-help="showHelp"
         @previous-statistics-month="emit('previousStatisticsMonth')"
         @toggle-theme="emit('toggleTheme')"
       />
@@ -62,4 +96,5 @@ const emit = defineEmits<{
       </main>
     </div>
   </div>
+  <InterfaceHelp v-if="helpOpen" :targets="helpTargets" @close="closeHelp" />
 </template>

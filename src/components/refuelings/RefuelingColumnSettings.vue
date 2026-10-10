@@ -2,6 +2,7 @@
 import type { RefuelingColumnKey } from '@/types/table'
 
 interface RefuelingVisibility {
+  search: boolean
   stations: boolean
   summary: boolean
   vehicles: boolean
@@ -32,6 +33,10 @@ function updateRefuelingVisibility(field: keyof RefuelingVisibility, checked: bo
     <label>
       <input :checked="refuelingVisibility.summary" type="checkbox" @change="updateRefuelingVisibility('summary', ($event.target as HTMLInputElement).checked)">
       <span>Виджеты</span>
+    </label>
+    <label>
+      <input :checked="refuelingVisibility.search" type="checkbox" @change="updateRefuelingVisibility('search', ($event.target as HTMLInputElement).checked)">
+      <span>Поиск по заправкам</span>
     </label>
     <label>
       <input :checked="refuelingVisibility.vehicles" type="checkbox" @change="updateRefuelingVisibility('vehicles', ($event.target as HTMLInputElement).checked)">

@@ -68,6 +68,7 @@ export function useFinanceWorkspace(options: UseFinanceWorkspaceOptions) {
   const bankLabelForm = reactive({ name: '', description: '' })
   const categoryForm = reactive({ name: '', description: '' })
   const dashboardVisibility = useStoredVisibility('brooks.dashboard.visibility', {
+    search: true,
     summary: true,
     attachFile: true,
     addBank: true,

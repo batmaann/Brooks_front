@@ -201,6 +201,7 @@
 .transaction-edit-row td { vertical-align: middle; }
 .transaction-edit-row td:nth-child(6) input { min-width: 220px; }
 .transaction-actions .icon-button { width: 32px; height: 32px; }
+.transaction-actions .transaction-cancel-button:hover:not(:disabled) { color: var(--danger); border-color: #e1bcbc; background: #fff1f2; }
 .muted-cell { color: var(--muted); font-size: 12px; }
 
 .list-toolbar { margin-bottom: 18px; display: flex; align-items: center; gap: 16px; }
@@ -300,6 +301,7 @@ td .icon-button { width: 32px; height: 32px; }
 .segmented-control svg { flex: 0 0 auto; }
 .modal footer { justify-content: flex-end; border-top: 1px solid var(--line); background: #fafbfa; }
 .modal-error { padding: 0 22px 16px; }
+.modal-error-top { padding: 16px 22px 0; overflow-wrap: anywhere; }
 .transaction-import-content { padding: 22px; display: grid; gap: 14px; }
 .transaction-import-info-button:hover, .transaction-import-info-button[aria-expanded="true"] { color: #8a6500; border-color: #e8cb73; background: #fff7d6; }
 .transaction-import-info { margin: 18px 22px 0; padding: 14px 16px; display: grid; gap: 9px; color: var(--muted); border: 1px solid #c9ddd1; border-radius: 7px; background: #f4faf6; font-size: 12px; line-height: 1.55; }
@@ -437,8 +439,11 @@ td .icon-button { width: 32px; height: 32px; }
 .delete-content { padding: 22px; display: grid; gap: 8px; color: var(--ink); }
 .delete-content p { margin: 0; font-weight: 800; }
 .delete-content span { color: var(--muted); font-size: 13px; }
-.check-field input { position: absolute; opacity: 0; pointer-events: none; }
+.check-field { position: relative; justify-self: start; width: fit-content; max-width: 100%; cursor: pointer; }
+.check-field input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .check-field span { width: fit-content; min-height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid #cad4cf; border-radius: 6px; color: #5a6560; }
+.check-field span svg { flex-shrink: 0; }
+.check-field input:focus-visible + span { outline: 2px solid var(--green); outline-offset: 2px; }
 .check-field input:checked + span { color: var(--green); background: var(--green-soft); border-color: #9cc6b3; }
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -483,6 +488,7 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .icon-button:hover { color: var(--green); background: #1b2a25; border-color: #4b695e; }
 [data-theme="dark"] .icon-button.danger { color: #ffaaa5; }
 [data-theme="dark"] .icon-button.danger:hover { color: #ff7777; background: #2f1d1d; border-color: #704040; }
+[data-theme="dark"] .transaction-actions .transaction-cancel-button:hover:not(:disabled) { color: #ff7777; background: #2f1d1d; border-color: #704040; }
 [data-theme="dark"] .theme-toggle { color: #ffe88a; background: #263026; border-color: #756d38; box-shadow: 0 10px 28px rgba(0, 0, 0, .36); }
 [data-theme="dark"] .danger-button:hover { background: #c04444; }
 [data-theme="dark"] .theme-toggle:hover,
@@ -576,6 +582,7 @@ td .icon-button { width: 32px; height: 32px; }
 [data-theme="dark"] .transaction-type.expense { color: #ffa1a1; background: #3b2020; }
 [data-theme="dark"] .transaction-type.saving { color: #f2c75b; background: #382d17; }
 [data-theme="dark"] .transaction-edit-row { background: #141f1b; }
+[data-theme="dark"] .transaction-edit-row input[type="date"] { color-scheme: dark; }
 [data-theme="dark"] .error-banner { color: #ffb7b7; background: #351d1d; border-color: #6a3333; }
 [data-theme="dark"] .modal-backdrop { background: rgba(4, 8, 7, .72); }
 [data-theme="dark"] .about-telegram-link { color: #78e0a8; background: #183527; border-color: #315b47; }
@@ -583,4 +590,26 @@ td .icon-button { width: 32px; height: 32px; }
 
 @media (max-width: 560px) {
   .about-telegram-links { grid-template-columns: 1fr; }
+}
+
+.bank-label-pane input[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+  animation: dictionary-name-shake 420ms ease-in-out, dictionary-name-blush 650ms ease-out;
+}
+.bank-label-pane input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent); }
+
+@keyframes dictionary-name-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes dictionary-name-blush {
+  25% { background-color: color-mix(in srgb, var(--danger) 16%, var(--surface, white)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bank-label-pane input[aria-invalid="true"] { animation: none; transition: none; }
 }

@@ -5,9 +5,15 @@ const props = withDefaults(defineProps<{
   min?: number
   modelValue: number
   required?: boolean
+  selectOnFocus?: boolean
+  groupThousands?: boolean
+  enterNext?: boolean
 }>(), {
   min: undefined,
   required: false,
+  selectOnFocus: false,
+  groupThousands: false,
+  enterNext: false,
 })
 
 const emit = defineEmits<{
@@ -20,7 +26,7 @@ const displayValue = ref(String(props.modelValue))
 const decimalPattern = /^-?\d*(?:[.,]\d{0,2})?$/
 
 function parsedValue(value: string) {
-  const normalized = value.replace(',', '.')
+  const normalized = value.replace(/\s/g, '').replace(',', '.')
   if (!normalized || normalized === '-' || normalized === '.' || normalized === '-.') return null
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : null
@@ -35,12 +41,14 @@ function updateValidity(value: string) {
 
 function handleInput(event: Event) {
   const element = event.target as HTMLInputElement
-  if (!decimalPattern.test(element.value)) {
+  const normalized = element.value.replace(/\s/g, '')
+  if (!decimalPattern.test(normalized)) {
     element.value = displayValue.value
     return
   }
 
-  displayValue.value = element.value
+  if (element.value !== normalized) element.value = normalized
+  displayValue.value = normalized
   updateValidity(element.value)
   const parsed = parsedValue(element.value)
   if (parsed !== null) emit('update:modelValue', parsed)
@@ -48,6 +56,27 @@ function handleInput(event: Event) {
 
 function handleFocus() {
   focused.value = true
+  displayValue.value = displayValue.value.replace(/\s/g, '')
+  if (input.value) {
+    input.value.value = displayValue.value
+    if (props.selectOnFocus) input.value.select()
+  }
+}
+
+function handleMouseDown(event: MouseEvent) {
+  if (!props.selectOnFocus || focused.value) return
+  event.preventDefault()
+  input.value?.focus()
+}
+
+function handleEnter(event: KeyboardEvent) {
+  if (!props.enterNext || event.isComposing) return
+  event.preventDefault()
+  const container = input.value?.closest('tr, form')
+  const controls = Array.from(container?.querySelectorAll<HTMLElement>('input, select, textarea, button') ?? [])
+    .filter((element) => !element.matches(':disabled, [type="hidden"]') && element.tabIndex >= 0 && element.getClientRects().length > 0)
+  const index = controls.indexOf(input.value!)
+  controls[index + 1]?.focus()
 }
 
 function handleBlur() {
@@ -57,7 +86,7 @@ function handleBlur() {
     displayValue.value = parsed.toLocaleString('ru-RU', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-      useGrouping: false,
+      useGrouping: props.groupThousands,
     })
   }
   updateValidity(displayValue.value)
@@ -80,5 +109,7 @@ onMounted(() => updateValidity(displayValue.value))
     @blur="handleBlur"
     @focus="handleFocus"
     @input="handleInput"
+    @mousedown="handleMouseDown"
+    @keydown.enter="handleEnter"
   >
 </template>

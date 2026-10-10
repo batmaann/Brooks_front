@@ -74,7 +74,7 @@ export function useFleetWorkspace(options: UseFleetWorkspaceOptions) {
   const { error, fleetStore, loadData, requestDelete, search, submit } = options
   const { refuelings, stations, vehicles } = storeToRefs(fleetStore)
 
-  const refuelingVisibility = useStoredVisibility('brooks.refuelings.visibility', { summary: true, vehicles: true, stations: true })
+  const refuelingVisibility = useStoredVisibility('brooks.refuelings.visibility', { summary: true, search: true, vehicles: true, stations: true })
   const vehicleForm = reactive(defaultVehicleForm())
   const refuelingForm = reactive(defaultRefuelingForm())
   const stationForm = reactive(defaultStationForm())

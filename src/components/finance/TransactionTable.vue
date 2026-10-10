@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp } from '@lucide/vue'
+import { computed, inject, ref } from 'vue'
+import { interfaceHelpKey } from '@/components/navigation/interfaceHelp'
 import TransactionCreateRow from '@/components/finance/TransactionCreateRow.vue'
 import TransactionEditRow from '@/components/finance/TransactionEditRow.vue'
 import TransactionRow from '@/components/finance/TransactionRow.vue'
@@ -31,7 +33,18 @@ interface Props {
   visibleColumns: TransactionSortKey[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+const helpOpen = inject(interfaceHelpKey, ref(false))
+const columnHelp: Record<TransactionSortKey, string> = {
+  date: 'Дата — укажите день операции, например день покупки или поступления зарплаты. По этой дате операция попадёт в статистику нужного месяца.',
+  transaction_type: 'Тип операции — выберите «Доход» для поступления денег, «Трата» для расходов или «Накопление» для отложенных средств.',
+  section: 'Раздел — выберите, к какому разделу в меню слева относится операция. От этого выбора зависит, в каком разделе она будет учитываться и на какие данные повлияет.',
+  category: 'Категория — уточните, на что потрачены или откуда получены деньги: например «Продукты» или «Зарплата». Свои категории можно создать кнопкой «Добавить категории».',
+  amount: 'Сумма — введите положительную сумму в рублях, например 1500,50. Доход это или расход, определяется типом операции.',
+  bank_label: 'Банк — выберите банк, через который прошла операция. Если нужного банка нет в списке, создайте его кнопкой «Добавить банк».',
+  description: 'Описание — добавьте понятную заметку, например «Покупка продуктов на неделю». Она поможет вспомнить детали и найти операцию через поиск.',
+}
+const helpColumns = computed(() => helpOpen.value ? Object.keys(columnHelp) as TransactionSortKey[] : props.visibleColumns)
 
 const emit = defineEmits<{
   cancelCreate: []
@@ -52,16 +65,18 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div v-if="hasTransactions || addingTransaction" class="table-panel transaction-table">
+  <div v-if="hasTransactions || addingTransaction || helpOpen" class="table-panel transaction-table" :class="{ 'transaction-table-help': helpOpen }">
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
-            <th class="selection-column"><input type="checkbox" :checked="allVisibleSelected" :disabled="!visibleColumnIds.length" title="Выбрать все видимые" @change="emit('toggleAll', ($event.target as HTMLInputElement).checked)"></th>
+            <th class="selection-column" data-help="Выбрать все видимые — отметьте все операции в текущем списке или снимите выделение. Чтобы выбрать только нужные операции, поставьте галочки напротив отдельных строк ниже. Для выбранных операций можно изменить раздел или категорию либо удалить их вместе."><input type="checkbox" :checked="allVisibleSelected" :disabled="!visibleColumnIds.length" title="Выбрать все видимые" @change="emit('toggleAll', ($event.target as HTMLInputElement).checked)"></th>
             <th
-              v-for="columnKey in visibleColumns"
+              v-for="columnKey in helpColumns"
               :key="columnKey"
               class="draggable-column"
+              :data-help="columnHelp[columnKey]"
+              :data-help-related="columnKey === 'section' ? 'app-sections' : undefined"
               :class="{ dragging: draggedColumn === columnKey }"
               draggable="true"
               @dragstart="emit('startColumnDrag', columnKey)"
@@ -86,7 +101,7 @@ const emit = defineEmits<{
             :form="transactionForm"
             :saving="saving"
             :sections="sections"
-            :visible-columns="visibleColumns"
+            :visible-columns="helpColumns"
             @cancel="emit('cancelCreate')"
             @create="emit('create')"
             @update:form="emit('update:transactionForm', $event)"
@@ -100,7 +115,7 @@ const emit = defineEmits<{
               :transaction-sign="transactionSign"
               :transaction-title="transactionTitle"
               :transaction-type-labels="transactionTypeLabels"
-              :visible-columns="visibleColumns"
+              :visible-columns="helpColumns"
               @remove="(id, label) => emit('remove', id, label)"
               @start-edit="emit('startEdit', $event)"
               @toggle-selection="(id, checked) => emit('toggleSelection', id, checked)"
@@ -114,7 +129,7 @@ const emit = defineEmits<{
               :item-id="item.id"
               :saving="saving"
               :sections="sections"
-              :visible-columns="visibleColumns"
+              :visible-columns="helpColumns"
               @cancel="emit('cancelEdit')"
               @toggle-selection="(id, checked) => emit('toggleSelection', id, checked)"
               @update="emit('update', $event)"
@@ -126,3 +141,11 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.transaction-table-help table { min-width: 0; width: 100%; table-layout: fixed; }
+.transaction-table-help th { padding: 12px 6px; white-space: normal; overflow-wrap: anywhere; }
+.transaction-table-help th:first-child, .transaction-table-help th:last-child { width: 30px; }
+.transaction-table-help td { overflow: hidden; }
+.transaction-table-help .sort-header { white-space: normal; font-size: 11px; }
+</style>

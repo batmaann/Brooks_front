@@ -28,7 +28,7 @@ function selectItem(item: NavItem) {
       <strong>Brooks</strong>
       <button class="icon-button mobile-close" title="Закрыть меню" @click="emit('close')"><X :size="20" /></button>
     </div>
-    <nav>
+    <nav data-help-id="app-sections" data-help="Разделы приложения — выберите нужный раздел в этом меню">
       <button
         v-for="item in navItems"
         :key="item.id"
@@ -43,7 +43,7 @@ function selectItem(item: NavItem) {
     </nav>
     <div class="sidebar-footer">
       <button @click="emit('logout')"><LogOut :size="19" /><span>Выйти</span></button>
-      <button class="about-link" type="button" @click="emit('about')">О нас</button>
+      <button class="about-link" type="button" data-help="О нас — узнайте больше о Brooks. Здесь также есть ссылки на канал с новостями и бот обратной связи для вопросов и предложений." @click="emit('about')">О нас</button>
     </div>
   </aside>
 </template>

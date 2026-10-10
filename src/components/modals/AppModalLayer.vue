@@ -80,6 +80,8 @@ const hasInvalidRefuelingCost = computed(() => {
     :wide="modal === 'bankLabel' || modal === 'category'"
     @close="closeModal"
   >
+    <p v-if="error" class="form-error modal-error modal-error-top" role="alert">{{ error }}</p>
+
     <VehicleFormModal v-if="modal === 'vehicle'" :form="vehicleForm" @submit="createVehicle" @update:form="Object.assign(vehicleForm, $event)" />
     <RefuelingFormModal
       v-if="modal === 'refueling'"
@@ -98,6 +100,7 @@ const hasInvalidRefuelingCost = computed(() => {
       :bank-labels="bankLabels"
       :create-form="bankLabelForm"
       :edit-form="bankLabelEditForm"
+      :error="error"
       :saving="saving"
       :selected-id="selectedBankLabelId"
       @create="createBankLabel"
@@ -111,6 +114,7 @@ const hasInvalidRefuelingCost = computed(() => {
       :categories="categories"
       :create-form="categoryForm"
       :edit-form="categoryEditForm"
+      :error="error"
       :saving="saving"
       :selected-id="selectedCategoryId"
       @create="createCategory"
@@ -119,8 +123,6 @@ const hasInvalidRefuelingCost = computed(() => {
       @update:create-form="Object.assign(categoryForm, $event)"
       @update:edit-form="Object.assign(categoryEditForm, $event)"
     />
-
-    <p v-if="error" class="form-error modal-error">{{ error }}</p>
 
     <template #footer>
       <button class="secondary-button" type="button" @click="closeModal">Отмена</button>

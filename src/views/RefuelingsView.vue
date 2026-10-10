@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Eye, Plus, Search } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import GasStationPanel from '@/components/refuelings/GasStationPanel.vue'
 import RefuelingBulkActions from '@/components/refuelings/RefuelingBulkActions.vue'
 import RefuelingColumnSettings from '@/components/refuelings/RefuelingColumnSettings.vue'
@@ -59,6 +59,43 @@ const {
 const { categories, categoryById } = finance
 const { openModal, remove, startEditRefueling } = modals
 const { saving, search } = ui
+const searchOpen = ref(Boolean(search.value))
+const searchInput = ref<HTMLInputElement>()
+const searchControl = ref<HTMLElement>()
+const searchWidth = ref(390)
+const refuelingControlsMenu = ref<HTMLElement>()
+
+function closeRefuelingControlsOnOutsideClick(event: MouseEvent) {
+  if (refuelingControlsOpen.value && event.target instanceof Node && !refuelingControlsMenu.value?.contains(event.target)) {
+    refuelingControlsOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', closeRefuelingControlsOnOutsideClick, true))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeRefuelingControlsOnOutsideClick, true)
+  refuelingControlsOpen.value = false
+})
+
+watch(() => refuelingVisibility.search, (visible) => {
+  if (visible) return
+  search.value = ''
+  searchOpen.value = false
+}, { immediate: true })
+
+async function openSearch() {
+  const bounds = searchControl.value?.getBoundingClientRect()
+  searchWidth.value = Math.max(40, Math.min(390, (bounds?.right ?? 468) - 78))
+  searchOpen.value = true
+  await nextTick()
+  searchInput.value?.focus()
+}
+
+function collapseUnusedSearch() {
+  if (search.value.trim()) return
+  search.value = ''
+  searchOpen.value = false
+}
 
 const searchModel = computed({
   get: () => search.value,
@@ -111,14 +148,23 @@ function openStationEdit(station: Parameters<typeof startEditStation>[0]) {
 
   <section class="finance-panel panel refueling-panel">
     <div class="section-heading">
-      <div class="finance-heading-main"><h2>Заправки</h2><div class="search-field transaction-search"><Search :size="18" /><input v-model="searchModel" placeholder="Поиск по заправкам, транспорту и АЗС"></div></div>
+      <div class="finance-heading-main"><h2>Заправки</h2></div>
       <div class="finance-heading-actions">
         <span class="action-tooltip" :title="vehicles.length ? 'Добавить новую заправку' : 'Сначала добавьте транспорт'">
-          <button class="primary-button dashboard-add-button" title="Добавить заправку" :disabled="!vehicles.length" @click="openModal('refueling')"><Plus :size="18" /></button>
+          <button class="primary-button dashboard-add-button" :style="searchOpen ? { transform: `translateX(-${searchWidth - 40}px)` } : undefined" title="Добавить заправку" :disabled="!vehicles.length" @click="openModal('refueling')"><Plus :size="18" /></button>
         </span>
+        <div v-if="refuelingVisibility.search" ref="searchControl" class="refueling-search-control" :class="{ 'search-open': searchOpen }">
+          <div v-if="searchOpen" class="search-field transaction-search" :style="{ width: `${searchWidth}px` }">
+            <Search :size="18" />
+            <input ref="searchInput" v-model="searchModel" aria-label="Поиск по заправкам, транспорту и АЗС" placeholder="Поиск по заправкам, транспорту и АЗС" @blur="collapseUnusedSearch">
+          </div>
+          <button v-else class="icon-button" type="button" title="Поиск по заправкам" aria-label="Раскрыть поиск по заправкам" :aria-expanded="searchOpen" @click="openSearch">
+            <Search :size="18" />
+          </button>
+        </div>
         <button class="secondary-button" title="Добавить транспорт" @click="openModal('vehicle')"><Plus :size="18" />Добавить транспорт</button>
         <button class="secondary-button" title="Добавить АЗС" @click="openStationCreate"><Plus :size="18" />Добавить АЗС</button>
-        <div class="visibility-menu">
+        <div ref="refuelingControlsMenu" class="visibility-menu">
           <button class="icon-button" :class="{ active: refuelingControlsOpen }" title="Настроить заправки" type="button" @click="refuelingControlsOpen = !refuelingControlsOpen"><Eye :size="18" /></button>
           <RefuelingColumnSettings
             v-if="refuelingControlsOpen"
@@ -175,3 +221,17 @@ function openStationEdit(station: Parameters<typeof startEditStation>[0]) {
     />
   </section>
 </template>
+
+<style scoped>
+.refueling-search-control { position: relative; flex: 0 0 40px; width: 40px; height: 42px; }
+.finance-heading-actions .dashboard-add-button { position: relative; z-index: 21; }
+.refueling-search-control .transaction-search { position: absolute; z-index: 20; top: 0; right: 0; max-width: calc(100vw - 32px); box-shadow: 0 4px 14px rgb(0 0 0 / 12%); }
+.refueling-search-control .transaction-search input { min-width: 0; }
+.refueling-search-control .transaction-search > svg { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .finance-heading-actions .dashboard-add-button { transform: none !important; }
+  .refueling-search-control.search-open { order: 1; flex: 1 1 100%; width: 100%; min-width: 0; }
+  .refueling-search-control .transaction-search { position: static; width: 100% !important; max-width: none; box-shadow: none; }
+  .refueling-search-control .transaction-search input { width: 100%; font-size: 16px; }
+}
+</style>
