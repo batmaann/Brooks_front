@@ -2,12 +2,14 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AuthView from '@/components/auth/AuthView.vue'
+import ResetPasswordView from '@/components/auth/ResetPasswordView.vue'
 import AppWorkspace from '@/components/AppWorkspace.vue'
 import ServiceUnavailableView from '@/components/ServiceUnavailableView.vue'
 import { useServiceAvailability } from '@/composables/useServiceAvailability'
 import { useTheme } from '@/composables/useTheme'
 import { useAuthStore } from '@/stores/auth'
 
+const isPasswordResetPage = window.location.pathname.replace(/\/$/, '') === '/reset-password'
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
 const { applyTheme } = useTheme()
@@ -20,6 +22,7 @@ onMounted(() => {
 
 <template>
   <ServiceUnavailableView v-if="unavailable" :status-code="statusCode" @retry="retry" />
+  <ResetPasswordView v-else-if="isPasswordResetPage" />
   <AuthView v-else-if="!isAuthenticated" />
   <AppWorkspace v-else />
 </template>
