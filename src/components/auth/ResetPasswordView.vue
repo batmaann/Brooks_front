@@ -33,7 +33,8 @@ async function savePassword() {
   } catch (requestError) {
     if (requestError instanceof ApiError) {
       if (requestError.details.token || requestError.details.uid) invalidLink.value = true
-      error.value = requestError.message
+      const passwordErrors = requestError.details.new_password
+      error.value = Array.isArray(passwordErrors) ? passwordErrors.join(' ') : passwordErrors || requestError.message
     } else {
       error.value = 'Не удалось связаться с сервером. Попробуйте ещё раз.'
     }
@@ -75,6 +76,7 @@ async function savePassword() {
             Новый пароль
             <input v-model="form.password" type="password" autocomplete="new-password" required minlength="8" maxlength="4096" :disabled="loading" placeholder="Не менее 8 символов">
           </label>
+          <p class="password-hint">Не менее 8 символов. Избегайте популярных паролей, простых последовательностей и данных вашего аккаунта. Пароль не должен состоять только из цифр.</p>
           <label>
             Повторите пароль
             <input v-model="form.confirmation" type="password" autocomplete="new-password" required minlength="8" maxlength="4096" :disabled="loading" placeholder="Введите пароль ещё раз">
@@ -93,6 +95,11 @@ async function savePassword() {
 </template>
 
 <style scoped>
+.password-hint {
+  color: var(--muted, #77817d);
+  font-size: 12px;
+  line-height: 19px;
+}
 .reset-login-link {
   text-align: center;
   text-decoration: none;
