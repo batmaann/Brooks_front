@@ -14,6 +14,39 @@ export class ApiError extends Error {
   }
 }
 
+function localizePasswordError(message: string): string {
+  if (message === 'This password is too common.') {
+    return 'Этот пароль слишком распространён, поэтому его легко подобрать. Придумайте более уникальный пароль: избегайте популярных слов и простых последовательностей.'
+  }
+  if (message === 'This password is entirely numeric.') {
+    return 'Пароль не должен состоять только из цифр. Добавьте буквы или специальные символы.'
+  }
+  const minimumLength = message.match(/^This password is too short\. It must contain at least (\d+) characters\.$/)
+  if (minimumLength) return `Пароль слишком короткий. Минимальная длина — ${minimumLength[1]} символов.`
+  if (/^The password is too similar to the .+\.$/.test(message)) {
+    return 'Пароль слишком похож на данные вашего аккаунта. Выберите пароль, который отличается от имени пользователя, имени и электронной почты.'
+  }
+  return message
+}
+
+function throttleMessage(retryAfter: string | null, detail: unknown): string {
+  const base = 'Слишком много запросов. '
+  const secondsInMessage = typeof detail === 'string'
+    ? detail.match(/Expected available in (\d+) seconds?\./)?.[1]
+    : undefined
+  const seconds = Number(retryAfter || secondsInMessage || NaN)
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return base + 'Подождите немного и попробуйте снова.'
+  }
+  const total = Math.max(1, Math.ceil(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const remainder = total % 60
+  const duration = [hours && `${hours} ч`, minutes && `${minutes} мин`, remainder && `${remainder} сек`]
+    .filter(Boolean).join(' ')
+  return base + `Попробуйте снова через ${duration}.`
+}
+
 interface AuthClientConfig {
   getToken: () => string | null
   onUnauthorized: () => void
@@ -48,6 +81,16 @@ async function request<T>(baseUrl: string, path: string, options: RequestInit = 
     if (response.status >= 500) reportServiceUnavailable(response.status)
     if (response.status === 401) authClient.onUnauthorized()
     const details = data && typeof data === 'object' ? data as ApiErrorPayload : {}
+    for (const field of ['password', 'new_password']) {
+      const value = details[field]
+      if (Array.isArray(value)) details[field] = value.map(localizePasswordError)
+      else if (typeof value === 'string') details[field] = localizePasswordError(value)
+    }
+    if (response.status === 429) {
+      const detail = Array.isArray(details.detail) ? details.detail[0] : details.detail
+      const message = throttleMessage(response.headers.get('Retry-After'), detail)
+      throw new ApiError(message, { detail: message })
+    }
     const firstValue = Object.values(details)[0]
     const message = Array.isArray(firstValue)
       ? firstValue[0] || 'Не удалось выполнить запрос'

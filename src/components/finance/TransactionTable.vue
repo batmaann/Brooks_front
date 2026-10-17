@@ -76,7 +76,7 @@ const emit = defineEmits<{
               :key="columnKey"
               class="draggable-column"
               :data-help="columnHelp[columnKey]"
-              :data-help-related="columnKey === 'section' ? 'app-sections' : undefined"
+              :data-help-related="columnKey === 'section' ? 'app-sections' : columnKey === 'category' ? 'add-category' : columnKey === 'bank_label' ? 'add-bank' : undefined"
               :class="{ dragging: draggedColumn === columnKey }"
               draggable="true"
               @dragstart="emit('startColumnDrag', columnKey)"

@@ -189,7 +189,7 @@ const transactionSearchModel = computed({
           <button class="primary-button dashboard-add-button" :style="transactionSearchOpen ? { transform: `translateX(-${transactionSearchWidth - 40}px)` } : undefined" title="Добавить операцию" data-help-placement="left" data-help="Кнопка «+» — добавляет новую операцию: доход, трату или накопление. Нажмите её, заполните поля и сохраните операцию галочкой." @click="startCreateTransaction()"><Plus :size="18" /></button>
           <template v-if="mobileLayout">
             <button v-if="dashboardVisibility.attachFile" class="icon-button dashboard-attach-button" title="Прикрепить файл" type="button" data-help="Прикрепить файл — откройте окно импорта, чтобы загрузить выписку или документ с финансовыми операциями. Файл можно выбрать на устройстве, перетащить или вставить из буфера обмена." @click="importModalOpen = true"><Paperclip :size="18" /></button>
-            <button v-if="dashboardVisibility.addBank" class="secondary-button dashboard-add-bank-button" type="button" data-help="Добавить банк — создайте банк, чтобы выбирать его при добавлении операций. В этом окне также можно изменить название и описание существующего банка." @click="openModal('bankLabel')">Добавить банк</button>
+            <button v-if="dashboardVisibility.addBank" class="secondary-button dashboard-add-bank-button" type="button" data-help-id="add-bank" data-help="Добавить банк — создайте банк, чтобы выбирать его при добавлении операций. В этом окне также можно изменить название и описание существующего банка." @click="openModal('bankLabel')">Добавить банк</button>
           </template>
         </div>
         <div v-if="dashboardVisibility.search" ref="transactionSearchControl" class="transaction-search-control" :class="{ 'search-open': transactionSearchOpen }">
@@ -203,10 +203,10 @@ const transactionSearchModel = computed({
         </div>
         <template v-if="!mobileLayout">
           <button v-if="dashboardVisibility.attachFile" class="icon-button dashboard-attach-button" title="Прикрепить файл" type="button" data-help="Прикрепить файл — откройте окно импорта, чтобы загрузить выписку или документ с финансовыми операциями. Файл можно выбрать на устройстве, перетащить или вставить из буфера обмена." @click="importModalOpen = true"><Paperclip :size="18" /></button>
-          <button v-if="dashboardVisibility.addBank" class="secondary-button dashboard-add-bank-button" type="button" data-help="Добавить банк — создайте банк, чтобы выбирать его при добавлении операций. В этом окне также можно изменить название и описание существующего банка." @click="openModal('bankLabel')">Добавить банк</button>
+          <button v-if="dashboardVisibility.addBank" class="secondary-button dashboard-add-bank-button" type="button" data-help-id="add-bank" data-help="Добавить банк — создайте банк, чтобы выбирать его при добавлении операций. В этом окне также можно изменить название и описание существующего банка." @click="openModal('bankLabel')">Добавить банк</button>
         </template>
         <div class="finance-secondary-actions">
-          <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" data-help="Добавить категории — создайте категорию, например «Продукты» или «Зарплата», чтобы указывать назначение операций. В этом окне также можно редактировать существующие категории." @click="openModal('category')">Добавить категории</button>
+          <button v-if="dashboardVisibility.addCategory" class="secondary-button" type="button" data-help-id="add-category" data-help="Добавить категории — создайте категорию, например «Продукты» или «Зарплата», чтобы указывать назначение операций. В этом окне также можно редактировать существующие категории." @click="openModal('category')">Добавить категории</button>
           <div ref="dashboardControlsMenu" class="visibility-menu">
             <button class="icon-button" :class="{ active: dashboardControlsOpen }" title="Настроить главную" type="button" data-help="Настроить главную — выберите, какие виджеты, кнопки и столбцы таблицы показывать на главной странице. Ваш выбор сохраняется в этом браузере." @click="dashboardControlsOpen = !dashboardControlsOpen"><Eye :size="18" /></button>
             <TransactionColumnSettings
